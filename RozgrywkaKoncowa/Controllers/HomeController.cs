@@ -64,6 +64,49 @@ namespace RozgrywkaKoncowa.Controllers
             return View(board);
         }
 
+        public IActionResult Rozgrywka()
+        {
+            var rng = new Random();
+            var spade = CDenomination.Spade;
+
+            var northCards = new List<CCard>
+            {
+                new CCard(spade, CRank.RA),
+                new CCard(spade, CRank.RQ)
+            };
+
+            var eastCards = new List<CCard>
+            {
+                new CCard(spade, CRank.R4),
+                new CCard(spade, CRank.R5)
+            };
+
+            var southCards = new List<CCard>
+            {
+                new CCard(spade, CRank.R2),
+                new CCard(spade, CRank.R3)
+            };
+
+            var westCards = new List<CCard>
+            {
+                new CCard(spade, CRank.RK),
+                new CCard(spade, CRank.R6)
+            };
+
+            var north = new CHand(northCards);
+            var east = new CHand(eastCards);
+            var south = new CHand(southCards);
+            var west = new CHand(westCards);
+
+            var level = CLevel.All.First(l => l.Value == 2);
+            var dbl = CDouble.All.First(d => d.Value > 0);
+            var declarer = CPlayer.All.First(p => p.Value > 0);
+            var contract = new CContract(level, CDenomination.Spade, dbl);
+
+            var board = new CBoard(north, east, south, west, declarer, contract);
+            return View(board);
+        }
+
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
         public IActionResult Error()
         {
