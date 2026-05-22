@@ -4,15 +4,15 @@ namespace RozgrywkaKoncowa.Models
     {
         public CCard() { }
 
-        public CCard(CDenomination denomination, string rank)
+        public CCard(CDenomination denomination, CRank rank)
         {
             Denomination = denomination;
             Rank = rank;
         }
 
         public CDenomination Denomination { get; set; } = CDenomination.Unknown;
-        public string Rank { get; set; } = string.Empty; // use values from CRank.Values
+        public CRank Rank { get; set; } = CRank.R2;
 
-        public override string ToString() => $"{Rank} of {Denomination}";
+        public override string ToString() => $"{Denomination.Symbol}{Rank.Symbol}";
     }
 }

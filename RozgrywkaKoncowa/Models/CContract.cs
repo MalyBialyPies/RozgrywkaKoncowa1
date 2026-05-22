@@ -15,6 +15,10 @@ namespace RozgrywkaKoncowa.Models
             Double = dbl;
         }
 
-        public override string ToString() => $"{Level} {Denomination} ({Double})";
+        public override string ToString()
+        {
+            if (Level == CLevel.Unknown) return "pass";
+            return $"{Level}{Denomination}({Double.ToString()})";
+        }
     }
 }

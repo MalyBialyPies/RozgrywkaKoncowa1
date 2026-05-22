@@ -1,37 +1,31 @@
 ﻿namespace RozgrywkaKoncowa.Models
 {
-    public enum CDenomination
+    public class CDenomination
     {
-        Unknown = -1,
-        Club = 1,
-        Diamond = 2,
-        Heart = 3,
-        Spade = 4,
-        NT = 5
-    }
+        public int Value { get; }
+        public string Name { get; }
+        public string Symbol { get; }
 
-    public static class CDenominationExtensions
-    {
-        // Returns a single-character suit symbol or "NT" for no-trump
-        public static string ToSymbol(this CDenomination d) => d switch
+        private CDenomination(int value, string name, string symbol)
         {
-            CDenomination.Club => "♣",
-            CDenomination.Diamond => "♦",
-            CDenomination.Heart => "♥",
-            CDenomination.Spade => "♠",
-            CDenomination.NT => "NT",
-            _ => "?"
-        };
+            Value = value;
+            Name = name;
+            Symbol = symbol;
+        }
 
-        // Returns the lowercase name of the denomination ("club", "diamond", ...)
-        public static string ToName(this CDenomination d) => d switch
-        {
-            CDenomination.Club => "club",
-            CDenomination.Diamond => "diamond",
-            CDenomination.Heart => "heart",
-            CDenomination.Spade => "spade",
-            CDenomination.NT => "nt",
-            _ => "unknown"
-        };
+        public static readonly CDenomination Unknown  = new(-1, "unknown",  "?");
+        public static readonly CDenomination Club     = new( 1, "club",     "♣");
+        public static readonly CDenomination Diamond  = new( 2, "diamond",  "♦");
+        public static readonly CDenomination Heart    = new( 3, "heart",    "♥");
+        public static readonly CDenomination Spade    = new( 4, "spade",    "♠");
+        public static readonly CDenomination NT       = new( 5, "nt",       "NT");
+
+        public static readonly CDenomination[] All = RozgrywkaKoncowa.Utils.SmartEnum<CDenomination>.All.ToArray();
+
+        public static CDenomination? FromValue(int value) =>
+            RozgrywkaKoncowa.Utils.SmartEnum<CDenomination>.FromValue(d => d.Value, value);
+
+        public override string ToString() => Name;
+        public string ToSymbol() => Symbol;
     }
 }
