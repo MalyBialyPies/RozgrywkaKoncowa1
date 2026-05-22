@@ -12,9 +12,9 @@ namespace RozgrywkaKoncowa.Models
         }
 
         public static readonly CDouble Unknown   = new(-1, "?");
-        public static readonly CDouble Doubled   = new( 1, "X");
-        public static readonly CDouble Redoubled = new( 2, "XX");
-        public static readonly CDouble Pass      = new( 3, "Pass");
+        public static readonly CDouble Doubled   = new( 1, "x");
+        public static readonly CDouble Redoubled = new( 2, "xx");
+        public static readonly CDouble Pass      = new( 3, "pass");
 
         public static readonly CDouble[] All = RozgrywkaKoncowa.Utils.SmartEnum<CDouble>.All.ToArray();
 
