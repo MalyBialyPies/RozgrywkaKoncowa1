@@ -42,8 +42,8 @@ namespace RozgrywkaKoncowa.Logic
         // Zwraca: (liczba lew NS, sekwencja)
         private static (int, List<string>) Minimax(CHand[] hands, int starter, CDenomination trump, int depth, List<string> seq, int nsWins, int weWins)
         {
-            // Koniec rozdania
-            if (hands.All(h => h.Count == 0))
+            // Koniec rozdania – NS wyczerpały karty
+            if (hands[0].Count == 0 && hands[2].Count == 0)
                 return (nsWins, new List<string>(seq));
 
             return EvaluateTrickSequence(hands, new List<(int player, CCard card)>(), starter, trump, depth, seq, nsWins, weWins);
@@ -64,8 +64,8 @@ namespace RozgrywkaKoncowa.Logic
 
                 var newSeq = new List<string>(seq) { trickStr };
 
-                // Jeśli gracze nie mają już kart, kończymy
-                if (hands.All(h => h.Count == 0))
+                // Jeśli gracze nie mają już kart (NS wyczerpały), kończymy
+                if (hands[0].Count == 0 && hands[2].Count == 0)
                     return (ns, newSeq);
 
                 // Sedno problemu analizy pojedynczego koloru:
