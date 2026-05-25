@@ -68,8 +68,7 @@ namespace RozgrywkaKoncowa.Logic
                 if (hands[0].Count == 0 && hands[2].Count == 0)
                     return (ns, newSeq);
 
-                // Sedno problemu analizy pojedynczego koloru:
-                // Zwycięzca nie gra następnej lewy, to NS ZAWSZE decyduje, z czyjej ręki (N czy S) bardziej opłaca się wyjść.
+                // NS zawsze decyduje, z czyjej ręki (N czy S) bardziej opłaca się wyjść.
                 int maxNS = -1;
                 List<string> bestTrickSeq = null;
 
