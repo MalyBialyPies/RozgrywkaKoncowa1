@@ -31,9 +31,9 @@ namespace RozgrywkaKoncowa.Controllers
         {
             var spade = CDenomination.Spade;
             var club = CDenomination.Club;
-            // Przykład: N: AQ, S: 79
-            var north = new CHand(new[] { new CCard(spade, CRank.RA), new CCard(spade, CRank.RQ) });
-            var south = new CHand(new[] { new CCard(spade, CRank.R7), new CCard(spade, CRank.R9) });
+            // Przykład: N: AQT, S: 234
+            var north = new CHand(new[] { new CCard(spade, CRank.RA), new CCard(spade, CRank.RQ), new CCard(spade, CRank.RT) });
+            var south = new CHand(new[] { new CCard(spade, CRank.R2), new CCard(spade, CRank.R3), new CCard(spade, CRank.R4) });
             int maxLen = Math.Max(north.Count, south.Count);
             while (north.Count < maxLen)
                 north.Add(new CCard(club, CRank.FromValue(north.Count + 2)));
@@ -42,14 +42,13 @@ namespace RozgrywkaKoncowa.Controllers
             int liczbaLew = maxLen;
             var strategies = StrategyGenerator.GenerateAllStrategies(north, south, liczbaLew);
 
-            // Pula kart WE
-            var wePool = new[] {
-                new CCard(spade, CRank.RK),
-                new CCard(spade, CRank.RJ),
-                new CCard(spade, CRank.RT),
-                new CCard(spade, CRank.R8),
-                new CCard(spade, CRank.R6)
-            };
+            // Pula kart WE: wszystkie piki poza tymi, które są już w rękach N i S
+            var allSpadeRanks = new[] { CRank.RA, CRank.RK, CRank.RQ, CRank.RJ, CRank.RT, CRank.R9, CRank.R8, CRank.R7, CRank.R6, CRank.R5, CRank.R4, CRank.R3, CRank.R2 };
+            var nsSpadeRanks = north.Concat(south).Where(c => c.Denomination == spade).Select(c => c.Rank).ToHashSet();
+            var wePool = allSpadeRanks
+                .Where(r => !nsSpadeRanks.Contains(r))
+                .Select(r => new CCard(spade, r))
+                .ToArray();
             int n = wePool.Length;
             int totalCombos = 1 << n;
             double totalWeight = Comb(26, 13);
@@ -104,7 +103,11 @@ namespace RozgrywkaKoncowa.Controllers
                     Details = details
                 });
             }
-            var best = results.OrderByDescending(r => r.ExpectedTricks).FirstOrDefault();
+            // Najlepsza strategia: największa szansa na 2 lewy, potem największa oczekiwana liczba lew
+            var best = results
+                .OrderByDescending(r => r.P2Tricks)
+                .ThenByDescending(r => r.ExpectedTricks)
+                .FirstOrDefault();
             ViewBag.Best = best;
 
             // Debug: wymuszona strategia S:7, N:Q N:A, S:9 i przykładowy rozkład WE (W: K8, E: JT)
