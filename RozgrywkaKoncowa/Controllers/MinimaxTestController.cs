@@ -45,12 +45,13 @@ namespace RozgrywkaKoncowa.Controllers
             });
             var contract = new CContract(CLevel.Level2, CDenomination.Spade, CDouble.Doubled);
             var board = new CBoard(north, east, south, west, CPlayer.PlayerNorth, contract);
-            var result = MinimaxSolver.Solve(board);
+            var result = ProbabilisticSolver.Solve(board);
             return Ok(new
             {
-                Minimaks = result.NSWins,
-                Sekwencja = result.SequenceLog
+                PrawdopodobienstwoWszystkichLew = result.Probability,
+                DrzewoStrategii = result
             });
         }
-    }
+
+      }
 }
