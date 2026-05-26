@@ -7,13 +7,22 @@ using System.Linq;
 
 namespace RozgrywkaKoncowa.Controllers
 {
+    public class StrategyEvalDetail
+    {
+        public string WDist { get; set; }   // karty W
+        public string EDist { get; set; }   // karty E
+        public double Probability { get; set; }
+        public int NSTricks { get; set; }
+    }
+
     public class StrategyEvalResult
     {
         public string Strategy { get; set; }
         public double ExpectedTricks { get; set; }
-        public double P2Tricks { get; set; } // procent szans na 2 lewy
-        public double P1Trick { get; set; }  // procent szans na 1 lew
-        public double P0Tricks { get; set; } // procent szans na 0 lew
+        public double P2Tricks { get; set; }
+        public double P1Trick { get; set; }
+        public double P0Tricks { get; set; }
+        public List<StrategyEvalDetail> Details { get; set; } = new();
     }
 
     public class StrategyEvalController : Controller
@@ -51,6 +60,7 @@ namespace RozgrywkaKoncowa.Controllers
             {
                 double expected = 0.0;
                 double p2 = 0.0, p1 = 0.0, p0 = 0.0;
+                var details = new List<StrategyEvalDetail>();
                 foreach (var i in Enumerable.Range(0, totalCombos))
                 {
                     var wSpades = new List<CCard>();
@@ -70,12 +80,19 @@ namespace RozgrywkaKoncowa.Controllers
                     var wHand = new CHand(wCards);
                     var eHand = new CHand(eCards);
 
-                    // Rozgrywka zegarowa: starter = S (2)
                     int nsWins = PlayClockwiseFull(nHand, eHand, sHand, wHand, strategy, liczbaLew, strategy.Sequence[0].playerIdx);
                     expected += nsWins * probability;
                     if (nsWins == 2) p2 += probability;
                     else if (nsWins == 1) p1 += probability;
                     else p0 += probability;
+
+                    details.Add(new StrategyEvalDetail
+                    {
+                        WDist = string.Join(" ", wSpades.Select(c => c.Rank.Symbol)),
+                        EDist = string.Join(" ", eSpades.Select(c => c.Rank.Symbol)),
+                        Probability = Math.Round(probability * 100, 2),
+                        NSTricks = nsWins
+                    });
                 }
                 results.Add(new StrategyEvalResult
                 {
@@ -83,7 +100,8 @@ namespace RozgrywkaKoncowa.Controllers
                     ExpectedTricks = Math.Round(expected, 3),
                     P2Tricks = Math.Round(p2 * 100, 2),
                     P1Trick = Math.Round(p1 * 100, 2),
-                    P0Tricks = Math.Round(p0 * 100, 2)
+                    P0Tricks = Math.Round(p0 * 100, 2),
+                    Details = details
                 });
             }
             var best = results.OrderByDescending(r => r.ExpectedTricks).FirstOrDefault();
@@ -265,7 +283,6 @@ namespace RozgrywkaKoncowa.Controllers
             {
                 int winnerIdx = Winner(trick, CDenomination.Spade);
                 int nsTricksNext = nsTricks + ((winnerIdx == 0 || winnerIdx == 2) ? 1 : 0);
-                // Starter następnej lewy pochodzi ze strategii (N lub S), nie od winnera
                 int nextStarter = nsSeqIdx < nsStrategy.Count ? nsStrategy[nsSeqIdx].playerIdx : winnerIdx;
                 return PlayTrickBranch(hands, nsStrategy, nsSeqIdx, liczbaLew - 1, nsTricksNext, nextStarter);
             }
@@ -273,46 +290,53 @@ namespace RozgrywkaKoncowa.Controllers
             if (player == 0 || player == 2) // NS
             {
                 var nsHand = hands[player];
-                var weFigury = trick.Where(x => x.player == 1 || x.player == 3)
+                // Sprawdź czy WE zagrało figurę którą można nadbić
+                var najlepszeWE = trick
+                    .Where(x => (x.player == 1 || x.player == 3) && x.card.Denomination == CDenomination.Spade)
+                    .OrderByDescending(x => x.card.Rank.Value)
                     .Select(x => x.card)
-                    .Where(c => c.Denomination == CDenomination.Spade && c.Rank.Value >= CRank.RJ.Value)
-                    .ToList();
-                CCard nadbicie = null;
-                foreach (var figura in weFigury)
+                    .FirstOrDefault();
+                if (najlepszeWE != null && najlepszeWE.Rank.Value >= CRank.RJ.Value)
                 {
-                    var wyzsze = nsHand.Where(c => c.Denomination == CDenomination.Spade && c.Rank.Value > figura.Rank.Value).OrderBy(c => c.Rank.Value).ToList();
-                    if (wyzsze.Any())
+                    // Szukamy najniższej wyższej karty w ręce NS
+                    var nadbicie = nsHand
+                        .Where(c => c.Denomination == CDenomination.Spade && c.Rank.Value > najlepszeWE.Rank.Value)
+                        .OrderBy(c => c.Rank.Value)
+                        .FirstOrDefault();
+                    if (nadbicie != null)
                     {
-                        nadbicie = wyzsze.First();
-                        break;
+                        // Znajdź tę kartę w strategii (od nsSeqIdx wzwyż) i usuń ją (bo ją teraz gramy)
+                        int nadbicieSeqIdx = nsStrategy.FindIndex(nsSeqIdx, x =>
+                            x.playerIdx == player &&
+                            x.card.Denomination == nadbicie.Denomination &&
+                            x.card.Rank.Value == nadbicie.Rank.Value);
+                        var nadbicieEntry = nadbicieSeqIdx >= 0 ? nsStrategy[nadbicieSeqIdx] : default;
+                        if (nadbicieSeqIdx >= 0) nsStrategy.RemoveAt(nadbicieSeqIdx);
+
+                        int idxNad = nsHand.FindIndex(c => c.Denomination == nadbicie.Denomination && c.Rank.Value == nadbicie.Rank.Value);
+                        nsHand.RemoveAt(idxNad);
+                        trick.Add((player, nadbicie));
+                        int res = PlayTrickBranchInner(hands, nsStrategy, nsSeqIdx, liczbaLew, nsTricks, order, pos + 1, trick);
+                        trick.RemoveAt(trick.Count - 1);
+                        nsHand.Insert(idxNad, nadbicie);
+                        if (nadbicieSeqIdx >= 0) nsStrategy.Insert(nadbicieSeqIdx, nadbicieEntry);
+                        return res;
                     }
                 }
-                if (nadbicie != null)
-                {
-                    int idxNad = nsHand.FindIndex(c => c.Denomination == nadbicie.Denomination && c.Rank.Value == nadbicie.Rank.Value);
-                    nsHand.RemoveAt(idxNad);
-                    trick.Add((player, nadbicie));
-                    int res = PlayTrickBranchInner(hands, nsStrategy, nsSeqIdx, liczbaLew, nsTricks, order, pos + 1, trick);
-                    trick.RemoveAt(trick.Count - 1);
-                    nsHand.Insert(idxNad, nadbicie);
-                    return res;
-                }
-                else
-                {
-                    if (nsSeqIdx >= nsStrategy.Count || nsStrategy[nsSeqIdx].playerIdx != player)
-                        return nsTricks;
-                    var card = nsStrategy[nsSeqIdx].card;
-                    int idx = nsHand.FindIndex(c => c.Denomination == card.Denomination && c.Rank.Value == card.Rank.Value);
-                    if (idx < 0) return nsTricks;
-                    nsHand.RemoveAt(idx);
-                    trick.Add((player, card));
-                    int res = PlayTrickBranchInner(hands, nsStrategy, nsSeqIdx + 1, liczbaLew, nsTricks, order, pos + 1, trick);
-                    trick.RemoveAt(trick.Count - 1);
-                    nsHand.Insert(idx, card);
-                    return res;
-                }
+                // Brak nadbicia – graj wg strategii
+                if (nsSeqIdx >= nsStrategy.Count || nsStrategy[nsSeqIdx].playerIdx != player)
+                    return nsTricks;
+                var card = nsStrategy[nsSeqIdx].card;
+                int idx = nsHand.FindIndex(c => c.Denomination == card.Denomination && c.Rank.Value == card.Rank.Value);
+                if (idx < 0) return nsTricks;
+                nsHand.RemoveAt(idx);
+                trick.Add((player, card));
+                int res2 = PlayTrickBranchInner(hands, nsStrategy, nsSeqIdx + 1, liczbaLew, nsTricks, order, pos + 1, trick);
+                trick.RemoveAt(trick.Count - 1);
+                nsHand.Insert(idx, card);
+                return res2;
             }
-            else // WE
+            else // WE minimalizuje lewy NS
             {
                 var hand = hands[player];
                 var toColor = trick.Count > 0 ? trick[0].card.Denomination : CDenomination.Spade;
@@ -356,48 +380,52 @@ namespace RozgrywkaKoncowa.Controllers
             if (player == 0 || player == 2) // NS
             {
                 var nsHand = hands[player];
-                var weFigury = trick.Where(x => x.player == 1 || x.player == 3)
+                var najlepszeWE = trick
+                    .Where(x => (x.player == 1 || x.player == 3) && x.card.Denomination == CDenomination.Spade)
+                    .OrderByDescending(x => x.card.Rank.Value)
                     .Select(x => x.card)
-                    .Where(c => c.Denomination == CDenomination.Spade && c.Rank.Value >= CRank.RJ.Value)
-                    .ToList();
-                CCard nadbicie = null;
-                foreach (var figura in weFigury)
+                    .FirstOrDefault();
+                if (najlepszeWE != null && najlepszeWE.Rank.Value >= CRank.RJ.Value)
                 {
-                    var wyzsze = nsHand.Where(c => c.Denomination == CDenomination.Spade && c.Rank.Value > figura.Rank.Value).OrderBy(c => c.Rank.Value).ToList();
-                    if (wyzsze.Any())
+                    var nadbicie = nsHand
+                        .Where(c => c.Denomination == CDenomination.Spade && c.Rank.Value > najlepszeWE.Rank.Value)
+                        .OrderBy(c => c.Rank.Value)
+                        .FirstOrDefault();
+                    if (nadbicie != null)
                     {
-                        nadbicie = wyzsze.First();
-                        break;
+                        int nadbicieSeqIdx = nsStrategy.FindIndex(nsSeqIdx, x =>
+                            x.playerIdx == player &&
+                            x.card.Denomination == nadbicie.Denomination &&
+                            x.card.Rank.Value == nadbicie.Rank.Value);
+                        var nadbicieEntry = nadbicieSeqIdx >= 0 ? nsStrategy[nadbicieSeqIdx] : default;
+                        if (nadbicieSeqIdx >= 0) nsStrategy.RemoveAt(nadbicieSeqIdx);
+
+                        int idxNad = nsHand.FindIndex(c => c.Denomination == nadbicie.Denomination && c.Rank.Value == nadbicie.Rank.Value);
+                        nsHand.RemoveAt(idxNad);
+                        trick.Add((player, nadbicie));
+                        debugLog.Add($"{PlayerName(player)}: {nadbicie} (nadbicie)");
+                        int res = PlayTrickBranch_Debug(hands, nsStrategy, nsSeqIdx, liczbaLew, nsTricks, order, pos + 1, trick, debugLog, starter);
+                        trick.RemoveAt(trick.Count - 1);
+                        nsHand.Insert(idxNad, nadbicie);
+                        if (nadbicieSeqIdx >= 0) nsStrategy.Insert(nadbicieSeqIdx, nadbicieEntry);
+                        return res;
                     }
                 }
-                if (nadbicie != null)
-                {
-                    int idxNad = nsHand.FindIndex(c => c.Denomination == nadbicie.Denomination && c.Rank.Value == nadbicie.Rank.Value);
-                    nsHand.RemoveAt(idxNad);
-                    trick.Add((player, nadbicie));
-                    debugLog.Add($"{PlayerName(player)}: {nadbicie} (nadbicie)");
-                    int res = PlayTrickBranch_Debug(hands, nsStrategy, nsSeqIdx, liczbaLew, nsTricks, order, pos + 1, trick, debugLog, starter);
-                    trick.RemoveAt(trick.Count - 1);
-                    nsHand.Insert(idxNad, nadbicie);
-                    return res;
-                }
-                else
-                {
-                    if (nsSeqIdx >= nsStrategy.Count || nsStrategy[nsSeqIdx].playerIdx != player)
-                        return nsTricks;
-                    var card = nsStrategy[nsSeqIdx].card;
-                    int idx = nsHand.FindIndex(c => c.Denomination == card.Denomination && c.Rank.Value == card.Rank.Value);
-                    if (idx < 0) return nsTricks;
-                    nsHand.RemoveAt(idx);
-                    trick.Add((player, card));
-                    debugLog.Add($"{PlayerName(player)}: {card}");
-                    int res = PlayTrickBranch_Debug(hands, nsStrategy, nsSeqIdx + 1, liczbaLew, nsTricks, order, pos + 1, trick, debugLog, starter);
-                    trick.RemoveAt(trick.Count - 1);
-                    nsHand.Insert(idx, card);
-                    return res;
-                }
+                // Brak nadbicia – graj wg strategii
+                if (nsSeqIdx >= nsStrategy.Count || nsStrategy[nsSeqIdx].playerIdx != player)
+                    return nsTricks;
+                var card = nsStrategy[nsSeqIdx].card;
+                int idx = nsHand.FindIndex(c => c.Denomination == card.Denomination && c.Rank.Value == card.Rank.Value);
+                if (idx < 0) return nsTricks;
+                nsHand.RemoveAt(idx);
+                trick.Add((player, card));
+                debugLog.Add($"{PlayerName(player)}: {card}");
+                int res2 = PlayTrickBranch_Debug(hands, nsStrategy, nsSeqIdx + 1, liczbaLew, nsTricks, order, pos + 1, trick, debugLog, starter);
+                trick.RemoveAt(trick.Count - 1);
+                nsHand.Insert(idx, card);
+                return res2;
             }
-            else // WE
+            else // WE minimalizuje lewy NS
             {
                 var hand = hands[player];
                 var toColor = trick.Count > 0 ? trick[0].card.Denomination : CDenomination.Spade;

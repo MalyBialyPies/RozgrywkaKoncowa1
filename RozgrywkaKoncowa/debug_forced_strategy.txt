@@ -10,6 +10,10 @@ Winner: N
 --- Lewa 1 (starter: N) ---
 N: ♠Q
 E: ♠T
+S: ♠9
+W: ♠8
+Kolejność: N:♠Q, E:♠T, S:♠9, W:♠8
+Winner: N
 E: ♠T
 Kolejność: S:♠7, W:♠K, N:♠A, E:♠T
 Winner: N
@@ -17,6 +21,10 @@ Winner: N
 --- Lewa 1 (starter: N) ---
 N: ♠Q
 E: ♠J
+S: ♠9
+W: ♠8
+Kolejność: N:♠Q, E:♠J, S:♠9, W:♠8
+Winner: N
 W: ♠8
 N: ♠Q
 E: ♠J

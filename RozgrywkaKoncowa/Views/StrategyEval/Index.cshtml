@@ -16,29 +16,54 @@
 }
 @if (Model != null && Model.Any())
 {
-<table class="table table-bordered table-sm">
-    <thead>
-        <tr>
-            <th>Strategia</th>
-            <th>Oczekiwana liczba lew NS</th>
-            <th>Szansa na 2 lewy (%)</th>
-            <th>Szansa na 1 lew (%)</th>
-            <th>Szansa na 0 lew (%)</th>
-        </tr>
-    </thead>
-    <tbody>
-    @foreach (var item in Model)
+    foreach (var item in Model)
     {
-        <tr>
-            <td>@item.Strategy</td>
-            <td>@item.ExpectedTricks</td>
-            <td>@item.P2Tricks</td>
-            <td>@item.P1Trick</td>
-            <td>@item.P0Tricks</td>
-        </tr>
+    <div style="margin-bottom: 24px; border: 1px solid #ccc; padding: 10px;">
+        <h4>Strategia: <b>@item.Strategy</b></h4>
+        <table class="table table-bordered table-sm" style="width:auto">
+            <thead>
+                <tr>
+                    <th>Oczekiwana liczba lew NS</th>
+                    <th>Szansa na 2 lewy (%)</th>
+                    <th>Szansa na 1 lew (%)</th>
+                    <th>Szansa na 0 lew (%)</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>@item.ExpectedTricks</td>
+                    <td>@item.P2Tricks</td>
+                    <td>@item.P1Trick</td>
+                    <td>@item.P0Tricks</td>
+                </tr>
+            </tbody>
+        </table>
+        <details>
+            <summary>Analiza rozkładów WE</summary>
+            <table class="table table-bordered table-sm" style="width:auto; margin-top:6px">
+                <thead>
+                    <tr>
+                        <th>W</th>
+                        <th>E</th>
+                        <th>Prawdop. (%)</th>
+                        <th>Lewy NS</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @foreach (var d in item.Details)
+                {
+                    <tr>
+                        <td>@(string.IsNullOrWhiteSpace(d.WDist) ? "–" : d.WDist)</td>
+                        <td>@(string.IsNullOrWhiteSpace(d.EDist) ? "–" : d.EDist)</td>
+                        <td>@d.Probability</td>
+                        <td>@d.NSTricks</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </details>
+    </div>
     }
-    </tbody>
-</table>
 }
 else
 {
