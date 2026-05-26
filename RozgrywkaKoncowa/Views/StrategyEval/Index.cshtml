@@ -1,0 +1,46 @@
+@model List<RozgrywkaKoncowa.Controllers.StrategyEvalResult>
+@{
+    ViewBag.Title = "Ewaluacja strategii NS";
+    var best = ViewBag.Best as RozgrywkaKoncowa.Controllers.StrategyEvalResult;
+}
+<h2>Ewaluacja strategii NS (N: AQ, S: 79)</h2>
+@if (best != null)
+{
+    <div style="background: #e0ffe0; padding: 10px; margin-bottom: 10px;">
+        <b>Najlepsza strategia:</b> @best?.Strategy<br />
+        <b>Oczekiwana liczba lew:</b> @best?.ExpectedTricks<br />
+        <b>Szansa na 2 lewy:</b> @best?.P2Tricks %<br />
+        <b>Szansa na 1 lew:</b> @best?.P1Trick %<br />
+        <b>Szansa na 0 lew:</b> @best?.P0Tricks %
+    </div>
+}
+@if (Model != null && Model.Any())
+{
+<table class="table table-bordered table-sm">
+    <thead>
+        <tr>
+            <th>Strategia</th>
+            <th>Oczekiwana liczba lew NS</th>
+            <th>Szansa na 2 lewy (%)</th>
+            <th>Szansa na 1 lew (%)</th>
+            <th>Szansa na 0 lew (%)</th>
+        </tr>
+    </thead>
+    <tbody>
+    @foreach (var item in Model)
+    {
+        <tr>
+            <td>@item.Strategy</td>
+            <td>@item.ExpectedTricks</td>
+            <td>@item.P2Tricks</td>
+            <td>@item.P1Trick</td>
+            <td>@item.P0Tricks</td>
+        </tr>
+    }
+    </tbody>
+</table>
+}
+else
+{
+    <div>Brak danych do wyświetlenia.</div>
+}

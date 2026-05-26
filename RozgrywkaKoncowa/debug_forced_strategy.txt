@@ -1,0 +1,43 @@
+
+--- Lewa 2 (starter: S) ---
+S: ♠7
+W: ♠K
+N: ♠A (nadbicie)
+E: ♠J
+Kolejność: S:♠7, W:♠K, N:♠A, E:♠J
+Winner: N
+
+--- Lewa 1 (starter: N) ---
+N: ♠Q
+E: ♠T
+E: ♠T
+Kolejność: S:♠7, W:♠K, N:♠A, E:♠T
+Winner: N
+
+--- Lewa 1 (starter: N) ---
+N: ♠Q
+E: ♠J
+W: ♠8
+N: ♠Q
+E: ♠J
+Kolejność: S:♠7, W:♠8, N:♠Q, E:♠J
+Winner: N
+
+--- Lewa 1 (starter: N) ---
+N: ♠A
+E: ♠T
+S: ♠9
+W: ♠K
+Kolejność: N:♠A, E:♠T, S:♠9, W:♠K
+Winner: N
+E: ♠T
+Kolejność: S:♠7, W:♠8, N:♠Q, E:♠T
+Winner: N
+
+--- Lewa 1 (starter: N) ---
+N: ♠A
+E: ♠J
+S: ♠9
+W: ♠K
+Kolejność: N:♠A, E:♠J, S:♠9, W:♠K
+Winner: N
