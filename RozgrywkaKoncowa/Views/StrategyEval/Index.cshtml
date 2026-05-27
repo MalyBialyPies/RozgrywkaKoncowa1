@@ -4,9 +4,45 @@
     var best = ViewBag.Best as RozgrywkaKoncowa.Controllers.StrategyEvalResult;
     int maxTricks = Model != null && Model.Any() ? Model[0].MaxTricks : 0;
     int targetTricks = ViewBag.TargetTricks != null ? (int)ViewBag.TargetTricks : maxTricks;
+    string northStr = ViewBag.NorthStr ?? ViewBag.NorthCards ?? "";
+    string southStr = ViewBag.SouthStr ?? ViewBag.SouthCards ?? "";
 }
-<h2>Ewaluacja strategii NS (N: AQT, S: 234)</h2>
-<p><b>Kryterium sortowania:</b> największa szansa na wzięcie <b>@targetTricks</b> lew.</p>
+<h2>Ewaluacja strategii NS</h2>
+
+<form method="get" asp-controller="StrategyEval" asp-action="Index" class="mb-4" id="evalForm" onsubmit="showSpinner()">
+    <div class="row g-2 align-items-end">
+        <div class="col-auto">
+            <label class="form-label">Karty N (piki, np. AQT)</label>
+            <input type="text" name="northCards" class="form-control" value="@ViewBag.NorthCards" style="width:120px" />
+        </div>
+        <div class="col-auto">
+            <label class="form-label">Karty S (piki, np. 234)</label>
+            <input type="text" name="southCards" class="form-control" value="@ViewBag.SouthCards" style="width:120px" />
+        </div>
+        <div class="col-auto">
+            <label class="form-label">Oczekiwana liczba lew</label>
+            <input type="number" name="targetTricks" class="form-control" value="@ViewBag.TargetTricksInput" min="1" style="width:80px" />
+        </div>
+        <div class="col-auto">
+            <button type="submit" class="btn btn-primary">Oblicz</button>
+            <span id="spinner" style="display:none; margin-left:10px">
+                <span class="spinner-border spinner-border-sm" role="status"></span> Obliczam...
+            </span>
+        </div>
+    </div>
+</form>
+<script>function showSpinner() { document.getElementById('spinner').style.display='inline'; }</script>
+
+@if (ViewBag.Error != null)
+{
+    <div class="alert alert-danger">@ViewBag.Error</div>
+}
+
+@if (Model != null && Model.Any())
+{
+    <p><b>Rozdanie:</b> N: @northStr &nbsp; S: @southStr &nbsp;&nbsp; <b>Kryterium sortowania:</b> największa szansa na wzięcie <b>@targetTricks</b> lew.</p>
+}
+
 @if (best != null)
 {
     <div style="background: #e0ffe0; padding: 10px; margin-bottom: 10px;">
@@ -88,7 +124,7 @@
     </div>
     }
 }
-else
+else if (ViewBag.Error == null)
 {
     <div>Brak danych do wyświetlenia.</div>
 }

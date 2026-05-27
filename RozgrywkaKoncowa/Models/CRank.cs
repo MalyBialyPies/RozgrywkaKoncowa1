@@ -27,7 +27,13 @@ namespace RozgrywkaKoncowa.Models
         public static readonly CRank RK  = new(13, "K","K");
         public static readonly CRank RA  = new(14, "A","A");
 
-        public static readonly CRank[] All = RozgrywkaKoncowa.Utils.SmartEnum<CRank>.All.ToArray();
+        public static IReadOnlyList<CRank> All => AllHolder.Value;
+
+        private static class AllHolder
+        {
+            internal static readonly IReadOnlyList<CRank> Value =
+                RozgrywkaKoncowa.Utils.SmartEnum<CRank>.All;
+        }
 
         public static CRank? FromValue(int value) =>
             RozgrywkaKoncowa.Utils.SmartEnum<CRank>.FromValue(r => r.Value, value);

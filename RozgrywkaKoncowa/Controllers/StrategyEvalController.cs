@@ -27,32 +27,83 @@ namespace RozgrywkaKoncowa.Controllers
 
     public class StrategyEvalController : Controller
     {
-        public IActionResult Index()
+        // Parsuje string kart np. "AQT" lub "A Q T" lub "A,Q,T" lub "10" -> lista CCard (pik)
+        private static List<CCard> ParseCards(string input)
         {
+            var cards = new List<CCard>();
+            if (string.IsNullOrWhiteSpace(input)) return cards;
+            var normalized = input.ToUpperInvariant()
+                .Replace(",", " ").Replace(";", " ");
+            // Najpierw spróbuj split po spacjach (np. "A Q T")
+            var tokens = normalized.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            foreach (var token in tokens)
+            {
+                if (token.Length == 1)
+                {
+                    // Pojedynczy znak – szukaj rangi
+                    var rank = CRank.FromSymbol(token);
+                    if (rank != null) cards.Add(new CCard(CDenomination.Spade, rank));
+                }
+                else
+                {
+                    // Ciąg znaków bez spacji np. "AQT" lub "234" – iteruj po znakach
+                    foreach (var ch in token)
+                    {
+                        var rank = CRank.FromSymbol(ch.ToString());
+                        if (rank != null) cards.Add(new CCard(CDenomination.Spade, rank));
+                    }
+                }
+            }
+            return cards;
+        }
+
+        [HttpGet]
+        public IActionResult Index(string northCards = null, string southCards = null, int? targetTricks = null)
+        {
+            ViewBag.NorthCards = northCards ?? "AQT";
+            ViewBag.SouthCards = southCards ?? "234";
+            ViewBag.TargetTricksInput = targetTricks ?? 2;
+
+            // Jeśli brak parametrów – pokaż tylko formularz
+            if (northCards == null && southCards == null)
+                return View(new List<StrategyEvalResult>());
+
             var spade = CDenomination.Spade;
             var club = CDenomination.Club;
-            // Przykład: N: AQT, S: 234
-            var north = new CHand(new[] { new CCard(spade, CRank.RA), new CCard(spade, CRank.RQ), new CCard(spade, CRank.RT) });
-            var south = new CHand(new[] { new CCard(spade, CRank.R2), new CCard(spade, CRank.R3), new CCard(spade, CRank.R4) });
+
+            var northList = ParseCards(northCards);
+            var southList = ParseCards(southCards);
+            if (!northList.Any() || !southList.Any())
+            {
+                ViewBag.Error = "Podaj poprawne karty dla N i S (np. AQT i 234).";
+                return View(new List<StrategyEvalResult>());
+            }
+
+            int target = targetTricks ?? 2;
+
+            var north = new CHand(northList);
+            var south = new CHand(southList);
             int maxLen = Math.Max(north.Count, south.Count);
             while (north.Count < maxLen)
                 north.Add(new CCard(club, CRank.FromValue(north.Count + 2)));
             while (south.Count < maxLen)
                 south.Add(new CCard(club, CRank.FromValue(south.Count + 2)));
             int liczbaLew = maxLen;
-            int targetTricks = 2; // interesuje nas szansa na wzięcie co najmniej targetTricks lew
+            if (target < 1) target = 1;
+            if (target > liczbaLew) target = liczbaLew;
+
+            // Karty WE = wszystkie piki z wyjątkiem kart NS
+            var nsRanks = northList.Concat(southList).Select(c => c.Rank.Value).ToHashSet();
+            var allSpadeRanks = new[] { CRank.RA, CRank.RK, CRank.RQ, CRank.RJ, CRank.RT,
+                                        CRank.R9, CRank.R8, CRank.R7, CRank.R6, CRank.R5,
+                                        CRank.R4, CRank.R3, CRank.R2 };
+            var wePool = allSpadeRanks
+                .Where(r => !nsRanks.Contains(r.Value))
+                .Select(r => new CCard(spade, r))
+                .ToArray();
+
             var strategies = StrategyGenerator.GenerateAllStrategies(north, south, liczbaLew);
 
-            // Pula kart WE (K J 9 8 7 6 5)
-            var wePool = new[] {
-                new CCard(spade, CRank.RK),
-                new CCard(spade, CRank.RJ),
-                new CCard(spade, CRank.R9),
-                new CCard(spade, CRank.R8),
-                new CCard(spade, CRank.R7),
-                new CCard(spade, CRank.R6),
-                new CCard(spade, CRank.R5)
-            };
             int n = wePool.Length;
             int totalCombos = 1 << n;
             double totalWeight = Comb(26, 13);
@@ -62,7 +113,7 @@ namespace RozgrywkaKoncowa.Controllers
             foreach (var strategy in strategies)
             {
                 double expected = 0.0;
-                double[] pTricks = new double[liczbaLew + 1]; // pTricks[k] = suma prawdop. dla k lew
+                double[] pTricks = new double[liczbaLew + 1];
                 var details = new List<StrategyEvalDetail>();
                 foreach (var i in Enumerable.Range(0, totalCombos))
                 {
@@ -105,35 +156,18 @@ namespace RozgrywkaKoncowa.Controllers
                     Details = details
                 });
             }
-            // Najlepsza strategia: największa szansa na wzięcie targetTricks lew
+
             var best = results
-                .OrderByDescending(r => r.PTricks[Math.Min(targetTricks, r.MaxTricks)])
+                .OrderByDescending(r => r.PTricks[Math.Min(target, r.MaxTricks)])
                 .ThenByDescending(r => r.ExpectedTricks)
                 .FirstOrDefault();
             ViewBag.Best = best;
-            ViewBag.TargetTricks = targetTricks;
-
-            // Debug: wymuszona strategia S:2 N:A | S:3 N:Q | S:4 N:T, przykładowy rozkład WE (W: K98, E: J765)
-            var forcedStrategy = new NSStrategy {
-                Sequence = new List<(int playerIdx, CCard card, int lewa)>{
-                    (2, new CCard(CDenomination.Spade, CRank.R2), 0),
-                    (0, new CCard(CDenomination.Spade, CRank.RA), 0),
-                    (2, new CCard(CDenomination.Spade, CRank.R3), 1),
-                    (0, new CCard(CDenomination.Spade, CRank.RQ), 1),
-                    (2, new CCard(CDenomination.Spade, CRank.R4), 2),
-                    (0, new CCard(CDenomination.Spade, CRank.RT), 2)
-                }
-            };
-            var debugLog = new List<string>();
-            var nHandDbg = new CHand(new[] { new CCard(spade, CRank.RA), new CCard(spade, CRank.RQ), new CCard(spade, CRank.RT) });
-            var sHandDbg = new CHand(new[] { new CCard(spade, CRank.R2), new CCard(spade, CRank.R3), new CCard(spade, CRank.R4) });
-            var wHandDbg = new CHand(new[] { new CCard(spade, CRank.RK), new CCard(spade, CRank.R9), new CCard(spade, CRank.R8) });
-            var eHandDbg = new CHand(new[] { new CCard(spade, CRank.RJ), new CCard(spade, CRank.R7), new CCard(spade, CRank.R6) });
-            PlayClockwiseFull_Debug(new[] { nHandDbg, eHandDbg, sHandDbg, wHandDbg }, forcedStrategy.Sequence, 0, 3, 0, forcedStrategy.Sequence[0].playerIdx, debugLog);
-            System.IO.File.WriteAllLines("debug_forced_strategy.txt", debugLog);
+            ViewBag.TargetTricks = target;
+            ViewBag.NorthStr = string.Join(" ", northList.Select(c => c.Rank.Symbol));
+            ViewBag.SouthStr = string.Join(" ", southList.Select(c => c.Rank.Symbol));
 
             return View(results
-                .OrderByDescending(r => r.PTricks[Math.Min(targetTricks, r.MaxTricks)])
+                .OrderByDescending(r => r.PTricks[Math.Min(target, r.MaxTricks)])
                 .ThenByDescending(r => r.ExpectedTricks)
                 .ToList());
         }
@@ -307,30 +341,47 @@ namespace RozgrywkaKoncowa.Controllers
                     .OrderByDescending(x => x.card.Rank.Value)
                     .Select(x => x.card)
                     .FirstOrDefault();
-                if (najlepszeWE != null && najlepszeWE.Rank.Value >= CRank.RJ.Value)
+                if (najlepszeWE != null)
                 {
                     // Szukamy najniższej wyższej karty w ręce NS
                     var nadbicie = nsHand
                         .Where(c => c.Denomination == CDenomination.Spade && c.Rank.Value > najlepszeWE.Rank.Value)
                         .OrderBy(c => c.Rank.Value)
                         .FirstOrDefault();
-                    if (nadbicie != null)
+                    // Graj kartą nadbicia tylko jeśli jest niższa niż planowana (oszczędzamy wyższe)
+                    var planned = nsSeqIdx < nsStrategy.Count && nsStrategy[nsSeqIdx].playerIdx == player
+                        ? nsStrategy[nsSeqIdx].card : null;
+                    bool planowanaBije = planned != null && planned.Denomination == CDenomination.Spade
+                        && planned.Rank.Value > najlepszeWE.Rank.Value;
+                    bool nadbicieTansze = nadbicie != null && planned != null
+                        && nadbicie.Rank.Value < planned.Rank.Value;
+                    if (nadbicie != null && (!planowanaBije || nadbicieTansze))
                     {
-                        // Znajdź tę kartę w strategii (od nsSeqIdx wzwyż) i usuń ją (bo ją teraz gramy)
+                        // Zamień planowaną kartę (nsSeqIdx) z kartą nadbicia w sekwencji
                         int nadbicieSeqIdx = nsStrategy.FindIndex(nsSeqIdx, x =>
                             x.playerIdx == player &&
                             x.card.Denomination == nadbicie.Denomination &&
                             x.card.Rank.Value == nadbicie.Rank.Value);
-                        var nadbicieEntry = nadbicieSeqIdx >= 0 ? nsStrategy[nadbicieSeqIdx] : default;
-                        if (nadbicieSeqIdx >= 0) nsStrategy.RemoveAt(nadbicieSeqIdx);
+                        if (nadbicieSeqIdx > nsSeqIdx)
+                        {
+                            var tmp = nsStrategy[nsSeqIdx];
+                            nsStrategy[nsSeqIdx] = nsStrategy[nadbicieSeqIdx];
+                            nsStrategy[nadbicieSeqIdx] = tmp;
+                        }
 
                         int idxNad = nsHand.FindIndex(c => c.Denomination == nadbicie.Denomination && c.Rank.Value == nadbicie.Rank.Value);
                         nsHand.RemoveAt(idxNad);
                         trick.Add((player, nadbicie));
-                        int res = PlayTrickBranchInner(hands, nsStrategy, nsSeqIdx, liczbaLew, nsTricks, order, pos + 1, trick);
+                        int res = PlayTrickBranchInner(hands, nsStrategy, nsSeqIdx + 1, liczbaLew, nsTricks, order, pos + 1, trick);
                         trick.RemoveAt(trick.Count - 1);
                         nsHand.Insert(idxNad, nadbicie);
-                        if (nadbicieSeqIdx >= 0) nsStrategy.Insert(nadbicieSeqIdx, nadbicieEntry);
+                        // Cofnij zamianę
+                        if (nadbicieSeqIdx > nsSeqIdx)
+                        {
+                            var tmp = nsStrategy[nsSeqIdx];
+                            nsStrategy[nsSeqIdx] = nsStrategy[nadbicieSeqIdx];
+                            nsStrategy[nadbicieSeqIdx] = tmp;
+                        }
                         return res;
                     }
                 }
@@ -396,29 +447,44 @@ namespace RozgrywkaKoncowa.Controllers
                     .OrderByDescending(x => x.card.Rank.Value)
                     .Select(x => x.card)
                     .FirstOrDefault();
-                if (najlepszeWE != null && najlepszeWE.Rank.Value >= CRank.RJ.Value)
+                if (najlepszeWE != null)
                 {
                     var nadbicie = nsHand
                         .Where(c => c.Denomination == CDenomination.Spade && c.Rank.Value > najlepszeWE.Rank.Value)
                         .OrderBy(c => c.Rank.Value)
                         .FirstOrDefault();
-                    if (nadbicie != null)
+                    var planned = nsSeqIdx < nsStrategy.Count && nsStrategy[nsSeqIdx].playerIdx == player
+                        ? nsStrategy[nsSeqIdx].card : null;
+                    bool planowanaBije = planned != null && planned.Denomination == CDenomination.Spade
+                        && planned.Rank.Value > najlepszeWE.Rank.Value;
+                    bool nadbicieTansze = nadbicie != null && planned != null
+                        && nadbicie.Rank.Value < planned.Rank.Value;
+                    if (nadbicie != null && (!planowanaBije || nadbicieTansze))
                     {
                         int nadbicieSeqIdx = nsStrategy.FindIndex(nsSeqIdx, x =>
                             x.playerIdx == player &&
                             x.card.Denomination == nadbicie.Denomination &&
                             x.card.Rank.Value == nadbicie.Rank.Value);
-                        var nadbicieEntry = nadbicieSeqIdx >= 0 ? nsStrategy[nadbicieSeqIdx] : default;
-                        if (nadbicieSeqIdx >= 0) nsStrategy.RemoveAt(nadbicieSeqIdx);
+                        if (nadbicieSeqIdx > nsSeqIdx)
+                        {
+                            var tmp = nsStrategy[nsSeqIdx];
+                            nsStrategy[nsSeqIdx] = nsStrategy[nadbicieSeqIdx];
+                            nsStrategy[nadbicieSeqIdx] = tmp;
+                        }
 
                         int idxNad = nsHand.FindIndex(c => c.Denomination == nadbicie.Denomination && c.Rank.Value == nadbicie.Rank.Value);
                         nsHand.RemoveAt(idxNad);
                         trick.Add((player, nadbicie));
                         debugLog.Add($"{PlayerName(player)}: {nadbicie} (nadbicie)");
-                        int res = PlayTrickBranch_Debug(hands, nsStrategy, nsSeqIdx, liczbaLew, nsTricks, order, pos + 1, trick, debugLog, starter);
+                        int res = PlayTrickBranch_Debug(hands, nsStrategy, nsSeqIdx + 1, liczbaLew, nsTricks, order, pos + 1, trick, debugLog, starter);
                         trick.RemoveAt(trick.Count - 1);
                         nsHand.Insert(idxNad, nadbicie);
-                        if (nadbicieSeqIdx >= 0) nsStrategy.Insert(nadbicieSeqIdx, nadbicieEntry);
+                        if (nadbicieSeqIdx > nsSeqIdx)
+                        {
+                            var tmp = nsStrategy[nsSeqIdx];
+                            nsStrategy[nsSeqIdx] = nsStrategy[nadbicieSeqIdx];
+                            nsStrategy[nadbicieSeqIdx] = tmp;
+                        }
                         return res;
                     }
                 }
