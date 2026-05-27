@@ -1,51 +1,495 @@
 
---- Lewa 2 (starter: S) ---
-S: ♠7
+--- Lewa 3 (starter: S) ---
+S: ♠2
 W: ♠K
 N: ♠A (nadbicie)
 E: ♠J
-Kolejność: S:♠7, W:♠K, N:♠A, E:♠J
+Kolejność: S:♠2, W:♠K, N:♠A, E:♠J
 Winner: N
 
---- Lewa 1 (starter: N) ---
+--- Lewa 2 (starter: S) ---
+S: ♠3
+W: ♠9
 N: ♠Q
-E: ♠T
-S: ♠9
-W: ♠8
-Kolejność: N:♠Q, E:♠T, S:♠9, W:♠8
-Winner: N
-E: ♠T
-Kolejność: S:♠7, W:♠K, N:♠A, E:♠T
+E: ♠7
+Kolejność: S:♠3, W:♠9, N:♠Q, E:♠7
 Winner: N
 
---- Lewa 1 (starter: N) ---
+--- Lewa 1 (starter: S) ---
+S: ♠4
+W: ♠8
+N: ♠T
+E: ♠6
+Kolejność: S:♠4, W:♠8, N:♠T, E:♠6
+Winner: N
+E: ♠6
+Kolejność: S:♠3, W:♠9, N:♠Q, E:♠6
+Winner: N
+
+--- Lewa 1 (starter: S) ---
+S: ♠4
+W: ♠8
+N: ♠T
+E: ♠7
+Kolejność: S:♠4, W:♠8, N:♠T, E:♠7
+Winner: N
+W: ♠8
+N: ♠Q
+E: ♠7
+Kolejność: S:♠3, W:♠8, N:♠Q, E:♠7
+Winner: N
+
+--- Lewa 1 (starter: S) ---
+S: ♠4
+W: ♠9
+N: ♠T
+E: ♠6
+Kolejność: S:♠4, W:♠9, N:♠T, E:♠6
+Winner: N
+E: ♠6
+Kolejność: S:♠3, W:♠8, N:♠Q, E:♠6
+Winner: N
+
+--- Lewa 1 (starter: S) ---
+S: ♠4
+W: ♠9
+N: ♠T
+E: ♠7
+Kolejność: S:♠4, W:♠9, N:♠T, E:♠7
+Winner: N
+E: ♠7
+Kolejność: S:♠2, W:♠K, N:♠A, E:♠7
+Winner: N
+
+--- Lewa 2 (starter: S) ---
+S: ♠3
+W: ♠9
 N: ♠Q
 E: ♠J
-S: ♠9
-W: ♠8
-Kolejność: N:♠Q, E:♠J, S:♠9, W:♠8
+Kolejność: S:♠3, W:♠9, N:♠Q, E:♠J
 Winner: N
+
+--- Lewa 1 (starter: S) ---
+S: ♠4
+W: ♠8
+N: ♠T
+E: ♠6
+Kolejność: S:♠4, W:♠8, N:♠T, E:♠6
+Winner: N
+E: ♠6
+Kolejność: S:♠3, W:♠9, N:♠Q, E:♠6
+Winner: N
+
+--- Lewa 1 (starter: S) ---
+S: ♠4
+W: ♠8
+N: ♠T
+E: ♠J
+Kolejność: S:♠4, W:♠8, N:♠T, E:♠J
+Winner: E
 W: ♠8
 N: ♠Q
 E: ♠J
-Kolejność: S:♠7, W:♠8, N:♠Q, E:♠J
+Kolejność: S:♠3, W:♠8, N:♠Q, E:♠J
 Winner: N
 
---- Lewa 1 (starter: N) ---
+--- Lewa 1 (starter: S) ---
+S: ♠4
+W: ♠9
+N: ♠T
+E: ♠6
+Kolejność: S:♠4, W:♠9, N:♠T, E:♠6
+Winner: N
+E: ♠6
+Kolejność: S:♠3, W:♠8, N:♠Q, E:♠6
+Winner: N
+
+--- Lewa 1 (starter: S) ---
+S: ♠4
+W: ♠9
+N: ♠T
+E: ♠J
+Kolejność: S:♠4, W:♠9, N:♠T, E:♠J
+Winner: E
+E: ♠6
+Kolejność: S:♠2, W:♠K, N:♠A, E:♠6
+Winner: N
+
+--- Lewa 2 (starter: S) ---
+S: ♠3
+W: ♠9
+N: ♠Q
+E: ♠J
+Kolejność: S:♠3, W:♠9, N:♠Q, E:♠J
+Winner: N
+
+--- Lewa 1 (starter: S) ---
+S: ♠4
+W: ♠8
+N: ♠T
+E: ♠7
+Kolejność: S:♠4, W:♠8, N:♠T, E:♠7
+Winner: N
+E: ♠7
+Kolejność: S:♠3, W:♠9, N:♠Q, E:♠7
+Winner: N
+
+--- Lewa 1 (starter: S) ---
+S: ♠4
+W: ♠8
+N: ♠T
+E: ♠J
+Kolejność: S:♠4, W:♠8, N:♠T, E:♠J
+Winner: E
+W: ♠8
+N: ♠Q
+E: ♠J
+Kolejność: S:♠3, W:♠8, N:♠Q, E:♠J
+Winner: N
+
+--- Lewa 1 (starter: S) ---
+S: ♠4
+W: ♠9
+N: ♠T
+E: ♠7
+Kolejność: S:♠4, W:♠9, N:♠T, E:♠7
+Winner: N
+E: ♠7
+Kolejność: S:♠3, W:♠8, N:♠Q, E:♠7
+Winner: N
+
+--- Lewa 1 (starter: S) ---
+S: ♠4
+W: ♠9
+N: ♠T
+E: ♠J
+Kolejność: S:♠4, W:♠9, N:♠T, E:♠J
+Winner: E
+W: ♠9
 N: ♠A
-E: ♠T
-S: ♠9
-W: ♠K
-Kolejność: N:♠A, E:♠T, S:♠9, W:♠K
-Winner: N
-E: ♠T
-Kolejność: S:♠7, W:♠8, N:♠Q, E:♠T
+E: ♠J
+Kolejność: S:♠2, W:♠9, N:♠A, E:♠J
 Winner: N
 
---- Lewa 1 (starter: N) ---
+--- Lewa 2 (starter: S) ---
+S: ♠3
+W: ♠K
+N: ♠Q
+E: ♠7
+Kolejność: S:♠3, W:♠K, N:♠Q, E:♠7
+Winner: W
+
+--- Lewa 1 (starter: S) ---
+S: ♠4
+W: ♠8
+N: ♠T
+E: ♠6
+Kolejność: S:♠4, W:♠8, N:♠T, E:♠6
+Winner: N
+E: ♠6
+Kolejność: S:♠3, W:♠K, N:♠Q, E:♠6
+Winner: W
+
+--- Lewa 1 (starter: S) ---
+S: ♠4
+W: ♠8
+N: ♠T
+E: ♠7
+Kolejność: S:♠4, W:♠8, N:♠T, E:♠7
+Winner: N
+W: ♠8
+N: ♠Q
+E: ♠7
+Kolejność: S:♠3, W:♠8, N:♠Q, E:♠7
+Winner: N
+
+--- Lewa 1 (starter: S) ---
+S: ♠4
+W: ♠K
+N: ♠T
+E: ♠6
+Kolejność: S:♠4, W:♠K, N:♠T, E:♠6
+Winner: W
+E: ♠6
+Kolejność: S:♠3, W:♠8, N:♠Q, E:♠6
+Winner: N
+
+--- Lewa 1 (starter: S) ---
+S: ♠4
+W: ♠K
+N: ♠T
+E: ♠7
+Kolejność: S:♠4, W:♠K, N:♠T, E:♠7
+Winner: W
+E: ♠7
+Kolejność: S:♠2, W:♠9, N:♠A, E:♠7
+Winner: N
+
+--- Lewa 2 (starter: S) ---
+S: ♠3
+W: ♠K
+N: ♠Q
+E: ♠J
+Kolejność: S:♠3, W:♠K, N:♠Q, E:♠J
+Winner: W
+
+--- Lewa 1 (starter: S) ---
+S: ♠4
+W: ♠8
+N: ♠T
+E: ♠6
+Kolejność: S:♠4, W:♠8, N:♠T, E:♠6
+Winner: N
+E: ♠6
+Kolejność: S:♠3, W:♠K, N:♠Q, E:♠6
+Winner: W
+
+--- Lewa 1 (starter: S) ---
+S: ♠4
+W: ♠8
+N: ♠T
+E: ♠J
+Kolejność: S:♠4, W:♠8, N:♠T, E:♠J
+Winner: E
+W: ♠8
+N: ♠Q
+E: ♠J
+Kolejność: S:♠3, W:♠8, N:♠Q, E:♠J
+Winner: N
+
+--- Lewa 1 (starter: S) ---
+S: ♠4
+W: ♠K
+N: ♠T
+E: ♠6
+Kolejność: S:♠4, W:♠K, N:♠T, E:♠6
+Winner: W
+E: ♠6
+Kolejność: S:♠3, W:♠8, N:♠Q, E:♠6
+Winner: N
+
+--- Lewa 1 (starter: S) ---
+S: ♠4
+W: ♠K
+N: ♠T
+E: ♠J
+Kolejność: S:♠4, W:♠K, N:♠T, E:♠J
+Winner: W
+E: ♠6
+Kolejność: S:♠2, W:♠9, N:♠A, E:♠6
+Winner: N
+
+--- Lewa 2 (starter: S) ---
+S: ♠3
+W: ♠K
+N: ♠Q
+E: ♠J
+Kolejność: S:♠3, W:♠K, N:♠Q, E:♠J
+Winner: W
+
+--- Lewa 1 (starter: S) ---
+S: ♠4
+W: ♠8
+N: ♠T
+E: ♠7
+Kolejność: S:♠4, W:♠8, N:♠T, E:♠7
+Winner: N
+E: ♠7
+Kolejność: S:♠3, W:♠K, N:♠Q, E:♠7
+Winner: W
+
+--- Lewa 1 (starter: S) ---
+S: ♠4
+W: ♠8
+N: ♠T
+E: ♠J
+Kolejność: S:♠4, W:♠8, N:♠T, E:♠J
+Winner: E
+W: ♠8
+N: ♠Q
+E: ♠J
+Kolejność: S:♠3, W:♠8, N:♠Q, E:♠J
+Winner: N
+
+--- Lewa 1 (starter: S) ---
+S: ♠4
+W: ♠K
+N: ♠T
+E: ♠7
+Kolejność: S:♠4, W:♠K, N:♠T, E:♠7
+Winner: W
+E: ♠7
+Kolejność: S:♠3, W:♠8, N:♠Q, E:♠7
+Winner: N
+
+--- Lewa 1 (starter: S) ---
+S: ♠4
+W: ♠K
+N: ♠T
+E: ♠J
+Kolejność: S:♠4, W:♠K, N:♠T, E:♠J
+Winner: W
+W: ♠8
 N: ♠A
 E: ♠J
-S: ♠9
-W: ♠K
-Kolejność: N:♠A, E:♠J, S:♠9, W:♠K
+Kolejność: S:♠2, W:♠8, N:♠A, E:♠J
 Winner: N
+
+--- Lewa 2 (starter: S) ---
+S: ♠3
+W: ♠K
+N: ♠Q
+E: ♠7
+Kolejność: S:♠3, W:♠K, N:♠Q, E:♠7
+Winner: W
+
+--- Lewa 1 (starter: S) ---
+S: ♠4
+W: ♠9
+N: ♠T
+E: ♠6
+Kolejność: S:♠4, W:♠9, N:♠T, E:♠6
+Winner: N
+E: ♠6
+Kolejność: S:♠3, W:♠K, N:♠Q, E:♠6
+Winner: W
+
+--- Lewa 1 (starter: S) ---
+S: ♠4
+W: ♠9
+N: ♠T
+E: ♠7
+Kolejność: S:♠4, W:♠9, N:♠T, E:♠7
+Winner: N
+W: ♠9
+N: ♠Q
+E: ♠7
+Kolejność: S:♠3, W:♠9, N:♠Q, E:♠7
+Winner: N
+
+--- Lewa 1 (starter: S) ---
+S: ♠4
+W: ♠K
+N: ♠T
+E: ♠6
+Kolejność: S:♠4, W:♠K, N:♠T, E:♠6
+Winner: W
+E: ♠6
+Kolejność: S:♠3, W:♠9, N:♠Q, E:♠6
+Winner: N
+
+--- Lewa 1 (starter: S) ---
+S: ♠4
+W: ♠K
+N: ♠T
+E: ♠7
+Kolejność: S:♠4, W:♠K, N:♠T, E:♠7
+Winner: W
+E: ♠7
+Kolejność: S:♠2, W:♠8, N:♠A, E:♠7
+Winner: N
+
+--- Lewa 2 (starter: S) ---
+S: ♠3
+W: ♠K
+N: ♠Q
+E: ♠J
+Kolejność: S:♠3, W:♠K, N:♠Q, E:♠J
+Winner: W
+
+--- Lewa 1 (starter: S) ---
+S: ♠4
+W: ♠9
+N: ♠T
+E: ♠6
+Kolejność: S:♠4, W:♠9, N:♠T, E:♠6
+Winner: N
+E: ♠6
+Kolejność: S:♠3, W:♠K, N:♠Q, E:♠6
+Winner: W
+
+--- Lewa 1 (starter: S) ---
+S: ♠4
+W: ♠9
+N: ♠T
+E: ♠J
+Kolejność: S:♠4, W:♠9, N:♠T, E:♠J
+Winner: E
+W: ♠9
+N: ♠Q
+E: ♠J
+Kolejność: S:♠3, W:♠9, N:♠Q, E:♠J
+Winner: N
+
+--- Lewa 1 (starter: S) ---
+S: ♠4
+W: ♠K
+N: ♠T
+E: ♠6
+Kolejność: S:♠4, W:♠K, N:♠T, E:♠6
+Winner: W
+E: ♠6
+Kolejność: S:♠3, W:♠9, N:♠Q, E:♠6
+Winner: N
+
+--- Lewa 1 (starter: S) ---
+S: ♠4
+W: ♠K
+N: ♠T
+E: ♠J
+Kolejność: S:♠4, W:♠K, N:♠T, E:♠J
+Winner: W
+E: ♠6
+Kolejność: S:♠2, W:♠8, N:♠A, E:♠6
+Winner: N
+
+--- Lewa 2 (starter: S) ---
+S: ♠3
+W: ♠K
+N: ♠Q
+E: ♠J
+Kolejność: S:♠3, W:♠K, N:♠Q, E:♠J
+Winner: W
+
+--- Lewa 1 (starter: S) ---
+S: ♠4
+W: ♠9
+N: ♠T
+E: ♠7
+Kolejność: S:♠4, W:♠9, N:♠T, E:♠7
+Winner: N
+E: ♠7
+Kolejność: S:♠3, W:♠K, N:♠Q, E:♠7
+Winner: W
+
+--- Lewa 1 (starter: S) ---
+S: ♠4
+W: ♠9
+N: ♠T
+E: ♠J
+Kolejność: S:♠4, W:♠9, N:♠T, E:♠J
+Winner: E
+W: ♠9
+N: ♠Q
+E: ♠J
+Kolejność: S:♠3, W:♠9, N:♠Q, E:♠J
+Winner: N
+
+--- Lewa 1 (starter: S) ---
+S: ♠4
+W: ♠K
+N: ♠T
+E: ♠7
+Kolejność: S:♠4, W:♠K, N:♠T, E:♠7
+Winner: W
+E: ♠7
+Kolejność: S:♠3, W:♠9, N:♠Q, E:♠7
+Winner: N
+
+--- Lewa 1 (starter: S) ---
+S: ♠4
+W: ♠K
+N: ♠T
+E: ♠J
+Kolejność: S:♠4, W:♠K, N:♠T, E:♠J
+Winner: W

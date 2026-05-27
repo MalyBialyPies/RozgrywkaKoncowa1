@@ -2,16 +2,22 @@
 @{
     ViewBag.Title = "Ewaluacja strategii NS";
     var best = ViewBag.Best as RozgrywkaKoncowa.Controllers.StrategyEvalResult;
+    int maxTricks = Model != null && Model.Any() ? Model[0].MaxTricks : 0;
+    int targetTricks = ViewBag.TargetTricks != null ? (int)ViewBag.TargetTricks : maxTricks;
 }
-<h2>Ewaluacja strategii NS (N: AQ, S: 79)</h2>
+<h2>Ewaluacja strategii NS (N: AQT, S: 234)</h2>
+<p><b>Kryterium sortowania:</b> największa szansa na wzięcie <b>@targetTricks</b> lew.</p>
 @if (best != null)
 {
     <div style="background: #e0ffe0; padding: 10px; margin-bottom: 10px;">
-        <b>Najlepsza strategia:</b> @best?.Strategy<br />
-        <b>Oczekiwana liczba lew:</b> @best?.ExpectedTricks<br />
-        <b>Szansa na 2 lewy:</b> @best?.P2Tricks %<br />
-        <b>Szansa na 1 lew:</b> @best?.P1Trick %<br />
-        <b>Szansa na 0 lew:</b> @best?.P0Tricks %
+        <b>Najlepsza strategia:</b> @best.Strategy<br />
+        <b>Oczekiwana liczba lew:</b> @best.ExpectedTricks<br />
+        @for (int k = maxTricks; k >= 0; k--)
+        {
+            var label = k == 1 ? "lewę" : "lewy";
+            var val = best.PTricks[k];
+            <text><b>Szansa na @k @label:</b> @val %<br /></text>
+        }
     </div>
 }
 @if (Model != null && Model.Any())
@@ -23,18 +29,35 @@
         <table class="table table-bordered table-sm" style="width:auto">
             <thead>
                 <tr>
-                    <th>Oczekiwana liczba lew NS</th>
-                    <th>Szansa na 2 lewy (%)</th>
-                    <th>Szansa na 1 lew (%)</th>
-                    <th>Szansa na 0 lew (%)</th>
+                    <th>EX (oczekiwana)</th>
+                    @for (int k = maxTricks; k >= 0; k--)
+                    {
+                        var label = k == 1 ? "lewę" : "lewy";
+                        if (k == targetTricks)
+                        {
+                            <th style="background:#fffacd"><b>Szansa na @k @label (%)</b></th>
+                        }
+                        else
+                        {
+                            <th>Szansa na @k @label (%)</th>
+                        }
+                    }
                 </tr>
             </thead>
             <tbody>
                 <tr>
                     <td>@item.ExpectedTricks</td>
-                    <td>@item.P2Tricks</td>
-                    <td>@item.P1Trick</td>
-                    <td>@item.P0Tricks</td>
+                    @for (int k = maxTricks; k >= 0; k--)
+                    {
+                        if (k == targetTricks)
+                        {
+                            <td style="background:#fffacd"><b>@item.PTricks[k]</b></td>
+                        }
+                        else
+                        {
+                            <td>@item.PTricks[k]</td>
+                        }
+                    }
                 </tr>
             </tbody>
         </table>

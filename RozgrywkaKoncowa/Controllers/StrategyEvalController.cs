@@ -9,8 +9,8 @@ namespace RozgrywkaKoncowa.Controllers
 {
     public class StrategyEvalDetail
     {
-        public string WDist { get; set; }   // karty W
-        public string EDist { get; set; }   // karty E
+        public string WDist { get; set; }
+        public string EDist { get; set; }
         public double Probability { get; set; }
         public int NSTricks { get; set; }
     }
@@ -19,9 +19,9 @@ namespace RozgrywkaKoncowa.Controllers
     {
         public string Strategy { get; set; }
         public double ExpectedTricks { get; set; }
-        public double P2Tricks { get; set; }
-        public double P1Trick { get; set; }
-        public double P0Tricks { get; set; }
+        // PTricks[k] = prawdopodobieństwo (%) wzięcia dokładnie k lew, k=0..MaxTricks
+        public double[] PTricks { get; set; }
+        public int MaxTricks { get; set; }
         public List<StrategyEvalDetail> Details { get; set; } = new();
     }
 
@@ -31,24 +31,27 @@ namespace RozgrywkaKoncowa.Controllers
         {
             var spade = CDenomination.Spade;
             var club = CDenomination.Club;
-            // Przykład: N: AQ, S: 79
-            var north = new CHand(new[] { new CCard(spade, CRank.RA), new CCard(spade, CRank.RQ) });
-            var south = new CHand(new[] { new CCard(spade, CRank.R7), new CCard(spade, CRank.R9) });
+            // Przykład: N: AQT, S: 234
+            var north = new CHand(new[] { new CCard(spade, CRank.RA), new CCard(spade, CRank.RQ), new CCard(spade, CRank.RT) });
+            var south = new CHand(new[] { new CCard(spade, CRank.R2), new CCard(spade, CRank.R3), new CCard(spade, CRank.R4) });
             int maxLen = Math.Max(north.Count, south.Count);
             while (north.Count < maxLen)
                 north.Add(new CCard(club, CRank.FromValue(north.Count + 2)));
             while (south.Count < maxLen)
                 south.Add(new CCard(club, CRank.FromValue(south.Count + 2)));
             int liczbaLew = maxLen;
+            int targetTricks = 2; // interesuje nas szansa na wzięcie co najmniej targetTricks lew
             var strategies = StrategyGenerator.GenerateAllStrategies(north, south, liczbaLew);
 
-            // Pula kart WE
+            // Pula kart WE (K J 9 8 7 6 5)
             var wePool = new[] {
                 new CCard(spade, CRank.RK),
                 new CCard(spade, CRank.RJ),
-                new CCard(spade, CRank.RT),
+                new CCard(spade, CRank.R9),
                 new CCard(spade, CRank.R8),
-                new CCard(spade, CRank.R6)
+                new CCard(spade, CRank.R7),
+                new CCard(spade, CRank.R6),
+                new CCard(spade, CRank.R5)
             };
             int n = wePool.Length;
             int totalCombos = 1 << n;
@@ -59,7 +62,7 @@ namespace RozgrywkaKoncowa.Controllers
             foreach (var strategy in strategies)
             {
                 double expected = 0.0;
-                double p2 = 0.0, p1 = 0.0, p0 = 0.0;
+                double[] pTricks = new double[liczbaLew + 1]; // pTricks[k] = suma prawdop. dla k lew
                 var details = new List<StrategyEvalDetail>();
                 foreach (var i in Enumerable.Range(0, totalCombos))
                 {
@@ -82,9 +85,8 @@ namespace RozgrywkaKoncowa.Controllers
 
                     int nsWins = PlayClockwiseFull(nHand, eHand, sHand, wHand, strategy, liczbaLew, strategy.Sequence[0].playerIdx);
                     expected += nsWins * probability;
-                    if (nsWins == 2) p2 += probability;
-                    else if (nsWins == 1) p1 += probability;
-                    else p0 += probability;
+                    if (nsWins >= 0 && nsWins <= liczbaLew)
+                        pTricks[nsWins] += probability;
 
                     details.Add(new StrategyEvalDetail
                     {
@@ -98,33 +100,42 @@ namespace RozgrywkaKoncowa.Controllers
                 {
                     Strategy = strategy.ToString(),
                     ExpectedTricks = Math.Round(expected, 3),
-                    P2Tricks = Math.Round(p2 * 100, 2),
-                    P1Trick = Math.Round(p1 * 100, 2),
-                    P0Tricks = Math.Round(p0 * 100, 2),
+                    PTricks = pTricks.Select(p => Math.Round(p * 100, 2)).ToArray(),
+                    MaxTricks = liczbaLew,
                     Details = details
                 });
             }
-            var best = results.OrderByDescending(r => r.ExpectedTricks).FirstOrDefault();
+            // Najlepsza strategia: największa szansa na wzięcie targetTricks lew
+            var best = results
+                .OrderByDescending(r => r.PTricks[Math.Min(targetTricks, r.MaxTricks)])
+                .ThenByDescending(r => r.ExpectedTricks)
+                .FirstOrDefault();
             ViewBag.Best = best;
+            ViewBag.TargetTricks = targetTricks;
 
-            // Debug: wymuszona strategia S:7, N:Q N:A, S:9 i przykładowy rozkład WE (W: K8, E: JT)
+            // Debug: wymuszona strategia S:2 N:A | S:3 N:Q | S:4 N:T, przykładowy rozkład WE (W: K98, E: J765)
             var forcedStrategy = new NSStrategy {
                 Sequence = new List<(int playerIdx, CCard card, int lewa)>{
-                    (2, new CCard(CDenomination.Spade, CRank.R7), 0),
-                    (0, new CCard(CDenomination.Spade, CRank.RQ), 0),
-                    (0, new CCard(CDenomination.Spade, CRank.RA), 1),
-                    (2, new CCard(CDenomination.Spade, CRank.R9), 1)
+                    (2, new CCard(CDenomination.Spade, CRank.R2), 0),
+                    (0, new CCard(CDenomination.Spade, CRank.RA), 0),
+                    (2, new CCard(CDenomination.Spade, CRank.R3), 1),
+                    (0, new CCard(CDenomination.Spade, CRank.RQ), 1),
+                    (2, new CCard(CDenomination.Spade, CRank.R4), 2),
+                    (0, new CCard(CDenomination.Spade, CRank.RT), 2)
                 }
             };
             var debugLog = new List<string>();
-            var nHandDbg = new CHand(new[] { new CCard(spade, CRank.RA), new CCard(spade, CRank.RQ) });
-            var sHandDbg = new CHand(new[] { new CCard(spade, CRank.R7), new CCard(spade, CRank.R9) });
-            var wHandDbg = new CHand(new[] { new CCard(spade, CRank.RK), new CCard(spade, CRank.R8) });
-            var eHandDbg = new CHand(new[] { new CCard(spade, CRank.RJ), new CCard(spade, CRank.RT) });
-            PlayClockwiseFull_Debug(new[] { nHandDbg, eHandDbg, sHandDbg, wHandDbg }, forcedStrategy.Sequence, 0, 2, 0, forcedStrategy.Sequence[0].playerIdx, debugLog); // starter z strategii
+            var nHandDbg = new CHand(new[] { new CCard(spade, CRank.RA), new CCard(spade, CRank.RQ), new CCard(spade, CRank.RT) });
+            var sHandDbg = new CHand(new[] { new CCard(spade, CRank.R2), new CCard(spade, CRank.R3), new CCard(spade, CRank.R4) });
+            var wHandDbg = new CHand(new[] { new CCard(spade, CRank.RK), new CCard(spade, CRank.R9), new CCard(spade, CRank.R8) });
+            var eHandDbg = new CHand(new[] { new CCard(spade, CRank.RJ), new CCard(spade, CRank.R7), new CCard(spade, CRank.R6) });
+            PlayClockwiseFull_Debug(new[] { nHandDbg, eHandDbg, sHandDbg, wHandDbg }, forcedStrategy.Sequence, 0, 3, 0, forcedStrategy.Sequence[0].playerIdx, debugLog);
             System.IO.File.WriteAllLines("debug_forced_strategy.txt", debugLog);
 
-            return View(results.OrderByDescending(r => r.ExpectedTricks).ToList());
+            return View(results
+                .OrderByDescending(r => r.PTricks[Math.Min(targetTricks, r.MaxTricks)])
+                .ThenByDescending(r => r.ExpectedTricks)
+                .ToList());
         }
 
         private static double Comb(int n, int k)
