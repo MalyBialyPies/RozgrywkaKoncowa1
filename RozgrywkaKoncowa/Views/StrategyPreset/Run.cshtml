@@ -1,0 +1,60 @@
+@model List<RozgrywkaKoncowa.Controllers.StrategyEvalResult>
+@{
+    ViewBag.Title = "Test: N:AQT S:234 W:KJ98";
+    var best = ViewBag.Best as RozgrywkaKoncowa.Controllers.StrategyEvalResult;
+    int targetTricks = (int)ViewBag.TargetTricks;
+    int maxTricks    = Model != null && Model.Any() ? Model[0].MaxTricks : 0;
+}
+
+<h2>Test układu: N:AQT S:234 W:KJ98 E:567</h2>
+<p>
+    <b>N:</b> @ViewBag.NorthStr &nbsp;
+    <b>S:</b> @ViewBag.SouthStr &nbsp;
+    <b>W:</b> @ViewBag.WestStr &nbsp;
+    <b>E:</b> @ViewBag.EastStr &nbsp;&nbsp;
+    <b>Cel:</b> @targetTricks lewy
+</p>
+
+@if (best != null)
+{
+    <div style="background:#e0ffe0; padding:10px; margin-bottom:16px; border-radius:4px">
+        <b>Najlepsza strategia:</b> @best.Strategy<br />
+        <b>Lewy NS:</b> @((int)best.ExpectedTricks
+)
+    </div>
+}
+
+@if (Model != null && Model.Any())
+{
+    foreach (var item in Model)
+    {
+        <div style="margin-bottom:20px; border:1px solid #ccc; padding:10px; border-radius:4px">
+            <h4>Strategia: <b>@item.Strategy</b></h4>
+            <p>Lewy NS przy tym układzie: <b>@((int)item.ExpectedTricks)</b></p>
+            <table class="table table-bordered table-sm" style="width:auto">
+                <thead>
+                    <tr>
+                        <th>W</th>
+                        <th>E</th>
+                        <th>Lewy NS</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @foreach (var d in item.Details)
+                {
+                    <tr>
+                        <td>@d.WDist</td>
+                        <td>@d.EDist</td>
+                        <td
+                            @if (d.NSTricks >= targetTricks)
+                            {
+                                <text>style="background:#e0ffe0; font-weight:bold"</text>
+                            }
+                        >@d.NSTricks</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    }
+}
