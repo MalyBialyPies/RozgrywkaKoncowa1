@@ -8,7 +8,18 @@ namespace RozgrywkaKoncowa.Controllers
 {
     public class StrategyPresetController : Controller
     {
-        // S:2, N:A  S:3, N:Q  N:T, S:4  W:KJ9  E:8765
+        // Oblicza prawdopodobieństwo (%) wzięcia co najmniej N lew
+        private static double GetProbabilityAtLeast(StrategyEvalResult result, int targetTricks)
+        {
+            double sum = 0.0;
+            for (int k = targetTricks; k <= result.MaxTricks; k++)
+            {
+                sum += result.PTricks[k];
+            }
+            return sum;
+        }
+
+        // S:2, N:T  S:3, N:Q  S:4, N:A  W:KJ9  E:8765
         // N: A Q T   S: 2 3 4   W: K J 9   E: 8 7 6 5
         private static readonly CRank[] NorthRanks = { CRank.RA, CRank.RQ, CRank.RT };
         private static readonly CRank[] SouthRanks = { CRank.R2, CRank.R3, CRank.R4 };
@@ -39,13 +50,13 @@ namespace RozgrywkaKoncowa.Controllers
 
             var allStrategies = StrategyGenerator.GenerateAllStrategies(north, south, liczbaLew);
 
-            // Ogranicz tylko do strategii: S:2 N:A, S:3 N:Q, N:T S:4
+            // Ogranicz tylko do strategii: S:2 N:T, S:3 N:Q, S:4 N:A
             // (firstPlayerIdx, firstRank, secondPlayerIdx, secondRank) per lewa
             var presetMoves = new[]
             {
-                (2, CRank.R2, 0, CRank.RA),  // lewa 0: S:2, N:A
+                (2, CRank.R2, 0, CRank.RT),  // lewa 0: S:2, N:T
                 (2, CRank.R3, 0, CRank.RQ),  // lewa 1: S:3, N:Q
-                (0, CRank.RT, 2, CRank.R4),  // lewa 2: N:T, S:4
+                (2, CRank.R4, 0, CRank.RA),  // lewa 2: S:4, N:A
             };
             var strategies = allStrategies.Where(st =>
             {
@@ -93,8 +104,9 @@ namespace RozgrywkaKoncowa.Controllers
                 });
             }
 
+            // Sortowanie: P(≥TargetTricks) malejąco, potem EX malejąco
             results = results
-                .OrderByDescending(r => r.PTricks[TargetTricks])
+                .OrderByDescending(r => GetProbabilityAtLeast(r, TargetTricks))
                 .ThenByDescending(r => r.ExpectedTricks)
                 .ToList();
 

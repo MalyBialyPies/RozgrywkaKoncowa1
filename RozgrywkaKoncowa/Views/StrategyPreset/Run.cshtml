@@ -6,13 +6,13 @@
     int maxTricks    = Model != null && Model.Any() ? Model[0].MaxTricks : 0;
 }
 
-<h2>Test układu: N:AQT S:234 W:KJ98 E:567</h2>
+<h2>Test układu: N:AQT S:234 W:KJ9 E:8765</h2>
 <p>
     <b>N:</b> @ViewBag.NorthStr &nbsp;
     <b>S:</b> @ViewBag.SouthStr &nbsp;
     <b>W:</b> @ViewBag.WestStr &nbsp;
     <b>E:</b> @ViewBag.EastStr &nbsp;&nbsp;
-    <b>Cel:</b> @targetTricks lewy
+    <b>Cel:</b> co najmniej @targetTricks @(targetTricks == 1 ? "lewa" : "lewy")
 </p>
 
 @if (best != null)

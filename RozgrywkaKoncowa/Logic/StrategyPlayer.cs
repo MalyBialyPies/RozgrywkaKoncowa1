@@ -116,19 +116,31 @@ namespace RozgrywkaKoncowa.Logic
             if (player == 0 || player == 2) // NS
             {
                 var nsHand = hands[player];
+                // Sprawdź jaka karta jest planowana w strategii
+                CCard planowanaKarta = null;
+                if (nsSeqIdx < nsStrategy.Count && nsStrategy[nsSeqIdx].playerIdx == player)
+                {
+                    planowanaKarta = nsStrategy[nsSeqIdx].card;
+                }
+                // Znajdź najwyższą kartę WE w pikach
                 var najlepszeWE = trick
                     .Where(x => (x.player == 1 || x.player == 3) && x.card.Denomination == CDenomination.Spade)
                     .OrderByDescending(x => x.card.Rank.Value)
                     .Select(x => x.card)
                     .FirstOrDefault();
-                if (najlepszeWE != null && najlepszeWE.Rank.Value >= CRank.RJ.Value)
+                // Nadbijanie: jeśli WE zagrało kartę wyższą niż planowana karta ze strategii
+                if (najlepszeWE != null && planowanaKarta != null && 
+                    planowanaKarta.Denomination == CDenomination.Spade &&
+                    najlepszeWE.Rank.Value > planowanaKarta.Rank.Value)
                 {
+                    // Znajdź najniższą kartę wyższą od karty przeciwnika
                     var nadbicie = nsHand
                         .Where(c => c.Denomination == CDenomination.Spade && c.Rank.Value > najlepszeWE.Rank.Value)
                         .OrderBy(c => c.Rank.Value)
                         .FirstOrDefault();
                     if (nadbicie != null)
                     {
+                        // Nadbijamy najniższą wyższą kartą
                         var origEntries = ApplyNadbicieRotation(nsStrategy, nsSeqIdx, player, nadbicie, out var playerSlots);
                         int idxNad = nsHand.FindIndex(c =>
                             c.Denomination == nadbicie.Denomination && c.Rank.Value == nadbicie.Rank.Value);
@@ -140,7 +152,31 @@ namespace RozgrywkaKoncowa.Logic
                         UndoNadbicieRotation(nsStrategy, playerSlots, origEntries);
                         return res;
                     }
+                    else
+                    {
+                        // Nie mamy wyższej karty - dorzucamy najniższą pikę lub inny kolor
+                        var najnizsza = nsHand
+                            .Where(c => c.Denomination == CDenomination.Spade)
+                            .OrderBy(c => c.Rank.Value)
+                            .FirstOrDefault();
+                        if (najnizsza == null)
+                            najnizsza = nsHand.OrderBy(c => c.Rank.Value).FirstOrDefault();
+                        if (najnizsza != null)
+                        {
+                            var origEntries = ApplyNadbicieRotation(nsStrategy, nsSeqIdx, player, najnizsza, out var playerSlots);
+                            int idxNaj = nsHand.FindIndex(c =>
+                                c.Denomination == najnizsza.Denomination && c.Rank.Value == najnizsza.Rank.Value);
+                            nsHand.RemoveAt(idxNaj);
+                            trick.Add((player, najnizsza));
+                            int res = PlayTrickBranchInner(hands, nsStrategy, nsSeqIdx + 1, liczbaLew, nsTricks, order, pos + 1, trick);
+                            trick.RemoveAt(trick.Count - 1);
+                            nsHand.Insert(idxNaj, najnizsza);
+                            UndoNadbicieRotation(nsStrategy, playerSlots, origEntries);
+                            return res;
+                        }
+                    }
                 }
+                // Gramy zgodnie ze strategią
                 if (nsSeqIdx >= nsStrategy.Count || nsStrategy[nsSeqIdx].playerIdx != player)
                     return nsTricks;
                 var card = nsStrategy[nsSeqIdx].card;
@@ -202,32 +238,69 @@ namespace RozgrywkaKoncowa.Logic
             if (player == 0 || player == 2) // NS
             {
                 var nsHand = hands[player];
+                // Sprawdź jaka karta jest planowana w strategii
+                CCard planowanaKarta = null;
+                if (nsSeqIdx < nsStrategy.Count && nsStrategy[nsSeqIdx].playerIdx == player)
+                {
+                    planowanaKarta = nsStrategy[nsSeqIdx].card;
+                }
+                // Znajdź najwyższą kartę WE w pikach
                 var najlepszeWE = trick
                     .Where(x => (x.player == 1 || x.player == 3) && x.card.Denomination == CDenomination.Spade)
                     .OrderByDescending(x => x.card.Rank.Value)
                     .Select(x => x.card)
                     .FirstOrDefault();
-                if (najlepszeWE != null && najlepszeWE.Rank.Value >= CRank.RJ.Value)
+                // Nadbijanie: jeśli WE zagrało kartę wyższą niż planowana karta ze strategii
+                if (najlepszeWE != null && planowanaKarta != null && 
+                    planowanaKarta.Denomination == CDenomination.Spade &&
+                    najlepszeWE.Rank.Value > planowanaKarta.Rank.Value)
                 {
+                    // Znajdź najniższą kartę wyższą od karty przeciwnika
                     var nadbicie = nsHand
                         .Where(c => c.Denomination == CDenomination.Spade && c.Rank.Value > najlepszeWE.Rank.Value)
                         .OrderBy(c => c.Rank.Value)
                         .FirstOrDefault();
                     if (nadbicie != null)
                     {
+                        // Nadbijamy najniższą wyższą kartą
                         var origEntries = ApplyNadbicieRotation(nsStrategy, nsSeqIdx, player, nadbicie, out var playerSlots);
                         int idxNad = nsHand.FindIndex(c =>
                             c.Denomination == nadbicie.Denomination && c.Rank.Value == nadbicie.Rank.Value);
                         nsHand.RemoveAt(idxNad);
                         trick.Add((player, nadbicie));
-                        debugLog.Add($"{PlayerName(player)}: {nadbicie} (nadbicie)");
+                        debugLog.Add($"{PlayerName(player)}: {nadbicie} (nadbicie zamiast {planowanaKarta})");
                         int res = PlayTrickBranch_Debug(hands, nsStrategy, nsSeqIdx + 1, liczbaLew, nsTricks, order, pos + 1, trick, debugLog, starter);
                         trick.RemoveAt(trick.Count - 1);
                         nsHand.Insert(idxNad, nadbicie);
                         UndoNadbicieRotation(nsStrategy, playerSlots, origEntries);
                         return res;
                     }
+                    else
+                    {
+                        // Nie mamy wyższej karty - dorzucamy najniższą pikę lub inny kolor
+                        var najnizsza = nsHand
+                            .Where(c => c.Denomination == CDenomination.Spade)
+                            .OrderBy(c => c.Rank.Value)
+                            .FirstOrDefault();
+                        if (najnizsza == null)
+                            najnizsza = nsHand.OrderBy(c => c.Rank.Value).FirstOrDefault();
+                        if (najnizsza != null)
+                        {
+                            var origEntries = ApplyNadbicieRotation(nsStrategy, nsSeqIdx, player, najnizsza, out var playerSlots);
+                            int idxNaj = nsHand.FindIndex(c =>
+                                c.Denomination == najnizsza.Denomination && c.Rank.Value == najnizsza.Rank.Value);
+                            nsHand.RemoveAt(idxNaj);
+                            trick.Add((player, najnizsza));
+                            debugLog.Add($"{PlayerName(player)}: {najnizsza} (najniższa, brak nadbicia dla {planowanaKarta})");
+                            int res = PlayTrickBranch_Debug(hands, nsStrategy, nsSeqIdx + 1, liczbaLew, nsTricks, order, pos + 1, trick, debugLog, starter);
+                            trick.RemoveAt(trick.Count - 1);
+                            nsHand.Insert(idxNaj, najnizsza);
+                            UndoNadbicieRotation(nsStrategy, playerSlots, origEntries);
+                            return res;
+                        }
+                    }
                 }
+                // Gramy zgodnie ze strategią
                 if (nsSeqIdx >= nsStrategy.Count || nsStrategy[nsSeqIdx].playerIdx != player)
                     return nsTricks;
                 var card = nsStrategy[nsSeqIdx].card;

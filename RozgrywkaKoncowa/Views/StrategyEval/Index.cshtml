@@ -40,7 +40,7 @@
 
 @if (Model != null && Model.Any())
 {
-    <p><b>Rozdanie:</b> N: @northStr &nbsp; S: @southStr &nbsp;&nbsp; <b>Kryterium sortowania:</b> największa szansa na wzięcie <b>@targetTricks</b> lew.</p>
+    <p><b>Rozdanie:</b> N: @northStr &nbsp; S: @southStr &nbsp;&nbsp; <b>Kryterium sortowania:</b> największa szansa na wzięcie <b>co najmniej @targetTricks</b> lew.</p>
 }
 
 @if (best != null)
@@ -48,12 +48,18 @@
     <div style="background: #e0ffe0; padding: 10px; margin-bottom: 10px;">
         <b>Najlepsza strategia:</b> @best.Strategy<br />
         <b>Oczekiwana liczba lew:</b> @best.ExpectedTricks<br />
+        <b>Szansa na co najmniej @targetTricks @(targetTricks == 1 ? "lewę" : "lewy"):</b> @best.GetProbabilityAtLeast(targetTricks).ToString("F6") %<br />
+        @{
+            double sumProb = 0;
+        }
         @for (int k = maxTricks; k >= 0; k--)
         {
             var label = k == 1 ? "lewę" : "lewy";
             var val = best.PTricks[k];
-            <text><b>Szansa na @k @label:</b> @val %<br /></text>
+            sumProb += val;
+            <text><b>Szansa na dokładnie @k @label:</b> @val.ToString("F6") %<br /></text>
         }
+        <text><i>(Suma kontrolna: @sumProb.ToString("F6") %)</i></text>
     </div>
 }
 @if (Model != null && Model.Any())
@@ -66,32 +72,21 @@
             <thead>
                 <tr>
                     <th>EX (oczekiwana)</th>
+                    <th style="background:#90ee90"><b>P(≥@targetTricks) (%)</b></th>
                     @for (int k = maxTricks; k >= 0; k--)
                     {
                         var label = k == 1 ? "lewę" : "lewy";
-                        if (k == targetTricks)
-                        {
-                            <th style="background:#fffacd"><b>Szansa na @k @label (%)</b></th>
-                        }
-                        else
-                        {
-                            <th>Szansa na @k @label (%)</th>
-                        }
+                        <th>P(=@k) (%)</th>
                     }
                 </tr>
             </thead>
             <tbody>
                 <tr>
                     <td>@item.ExpectedTricks</td>
+                    <td style="background:#90ee90"><b>@item.GetProbabilityAtLeast(targetTricks).ToString("F6")</b></td>
                     @for (int k = maxTricks; k >= 0; k--)
                     {
-                        if (k == targetTricks)
-                        {
-                            <td style="background:#fffacd"><b>@item.PTricks[k]</b></td>
-                        }
-                        else
-                        {
-                            <td>@item.PTricks[k]</td>
+                        <td>@item.PTricks[k].ToString("F6")</td>
                         }
                     }
                 </tr>
@@ -114,7 +109,7 @@
                     <tr>
                         <td>@(string.IsNullOrWhiteSpace(d.WDist) ? "–" : d.WDist)</td>
                         <td>@(string.IsNullOrWhiteSpace(d.EDist) ? "–" : d.EDist)</td>
-                        <td>@d.Probability</td>
+                        <td>@d.Probability.ToString("F6")</td>
                         <td>@d.NSTricks</td>
                     </tr>
                 }

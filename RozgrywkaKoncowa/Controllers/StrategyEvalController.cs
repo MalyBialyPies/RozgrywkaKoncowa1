@@ -19,14 +19,36 @@ namespace RozgrywkaKoncowa.Controllers
     {
         public string Strategy { get; set; }
         public double ExpectedTricks { get; set; }
-        // PTricks[k] = prawdopodobieĹ„stwo (%) wziÄ™cia dokĹ‚adnie k lew, k=0..MaxTricks
+        // PTricks[k] = prawdopodobieństwo (%) wzięcia dokładnie k lew, k=0..MaxTricks
         public double[] PTricks { get; set; }
         public int MaxTricks { get; set; }
         public List<StrategyEvalDetail> Details { get; set; } = new();
+
+        // Metoda pomocnicza: prawdopodobieństwo wzięcia co najmniej N lew
+        public double GetProbabilityAtLeast(int targetTricks)
+        {
+            double sum = 0.0;
+            for (int k = targetTricks; k <= MaxTricks; k++)
+            {
+                sum += PTricks[k];
+            }
+            return sum;
+        }
     }
 
     public class StrategyEvalController : Controller
     {
+        // Oblicza prawdopodobieństwo (%) wzięcia co najmniej N lew
+        private static double GetProbabilityAtLeast(StrategyEvalResult result, int targetTricks)
+        {
+            double sum = 0.0;
+            for (int k = targetTricks; k <= result.MaxTricks; k++)
+            {
+                sum += result.PTricks[k];
+            }
+            return sum;
+        }
+
         // Parsuje string kart np. "AQT" lub "A Q T" lub "A,Q,T" lub "10" -> lista CCard (pik)
         private static List<CCard> ParseCards(string input)
         {
@@ -106,7 +128,8 @@ namespace RozgrywkaKoncowa.Controllers
 
             int n = wePool.Length;
             int totalCombos = 1 << n;
-            double totalWeight = Comb(26, 13);
+            // Każdy rozkład pików WE jest równie prawdopodobny (uzupełniamy nieznaczącymi treflami)
+            double uniformProb = 1.0 / totalCombos;
 
             var results = new List<StrategyEvalResult>();
 
@@ -121,8 +144,9 @@ namespace RozgrywkaKoncowa.Controllers
                     for (int bit = 0; bit < n; bit++)
                         if ((i & (1 << bit)) != 0) wSpades.Add(wePool[bit]);
                     var eSpades = wePool.Except(wSpades).ToList();
-                    int wCount = wSpades.Count;
-                    double probability = Comb(26 - n, 13 - wCount) / totalWeight;
+
+                    // Równomierne prawdopodobieństwo dla każdego rozkładu pików
+                    double probability = uniformProb;
 
                     var wCards = wSpades.ToList();
                     for (int j = wCards.Count; j < liczbaLew; j++) wCards.Add(new CCard(club, CRank.FromValue((j % 13) + 2)));
@@ -143,31 +167,60 @@ namespace RozgrywkaKoncowa.Controllers
                     {
                         WDist = string.Join(" ", wSpades.Select(c => c.Rank.Symbol)),
                         EDist = string.Join(" ", eSpades.Select(c => c.Rank.Symbol)),
-                        Probability = Math.Round(probability * 100, 2),
+                        Probability = Math.Round(probability * 100, 6),
                         NSTricks = nsWins
                     });
                 }
+                // Normalizacja: upewnij się, że suma prawdopodobieństw wynosi dokładnie 100%
+                double totalProb = pTricks.Sum();
+                if (totalProb > 0)
+                {
+                    for (int k = 0; k < pTricks.Length; k++)
+                    {
+                        pTricks[k] = pTricks[k] / totalProb;
+                    }
+                }
+
+                // Zaokrąglij do 6 miejsc po przecinku
+                var pTricksPercent = pTricks.Select(p => Math.Round(p * 100, 6)).ToArray();
+
+                // Dostosuj ostatnią wartość tak, aby suma wynosiła dokładnie 100%
+                double sumPercent = pTricksPercent.Sum();
+                if (sumPercent != 100.0 && pTricksPercent.Length > 0)
+                {
+                    // Znajdź indeks z największą wartością (która nie jest 0)
+                    int maxIdx = 0;
+                    for (int k = 1; k < pTricksPercent.Length; k++)
+                    {
+                        if (pTricksPercent[k] > pTricksPercent[maxIdx])
+                            maxIdx = k;
+                    }
+                    pTricksPercent[maxIdx] += (100.0 - sumPercent);
+                }
+
                 results.Add(new StrategyEvalResult
                 {
                     Strategy = strategy.ToString(),
                     ExpectedTricks = Math.Round(expected, 3),
-                    PTricks = pTricks.Select(p => Math.Round(p * 100, 2)).ToArray(),
+                    PTricks = pTricksPercent,
                     MaxTricks = liczbaLew,
                     Details = details
                 });
             }
 
+            // Sortowanie: P(≥target) malejąco, potem EX malejąco
             var best = results
-                .OrderByDescending(r => r.PTricks[Math.Min(target, r.MaxTricks)])
+                .OrderByDescending(r => GetProbabilityAtLeast(r, target))
                 .ThenByDescending(r => r.ExpectedTricks)
                 .FirstOrDefault();
+
             ViewBag.Best = best;
             ViewBag.TargetTricks = target;
             ViewBag.NorthStr = string.Join(" ", northList.Select(c => c.Rank.Symbol));
             ViewBag.SouthStr = string.Join(" ", southList.Select(c => c.Rank.Symbol));
 
             return View(results
-                .OrderByDescending(r => r.PTricks[Math.Min(target, r.MaxTricks)])
+                .OrderByDescending(r => GetProbabilityAtLeast(r, target))
                 .ThenByDescending(r => r.ExpectedTricks)
                 .ToList());
         }
