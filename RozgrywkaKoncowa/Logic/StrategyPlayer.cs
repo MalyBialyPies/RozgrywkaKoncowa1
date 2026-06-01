@@ -196,18 +196,46 @@ namespace RozgrywkaKoncowa.Logic
                 var toColor = trick.Count > 0 ? trick[0].card.Denomination : CDenomination.Spade;
                 var hasColor = hand.Any(c => c.Denomination == toColor);
                 var options = hasColor ? hand.Where(c => c.Denomination == toColor).ToList() : hand.ToList();
+
+                // Optymalizacja: sortuj po randze malejąco i cachuj wynik dla sekwensów
+                options = options.OrderByDescending(c => c.Rank.Value).ToList();
+
                 int minNS = int.MaxValue;
-                foreach (var card in options)
+                int? cachedResult = null;
+
+                for (int i = 0; i < options.Count; i++)
                 {
-                    int idx = hand.FindIndex(c =>
-                        c.Denomination == card.Denomination && c.Rank.Value == card.Rank.Value);
-                    hand.RemoveAt(idx);
-                    trick.Add((player, card));
-                    int res = PlayTrickBranchInner(hands, nsStrategy, nsSeqIdx, liczbaLew, nsTricks, order, pos + 1, trick);
+                    var card = options[i];
+
+                    // Sprawdź czy to początek sekwensu (karta o 1 niższa niż poprzednia)
+                    bool isSequenceContinuation = i > 0 && 
+                        options[i - 1].Rank.Value == card.Rank.Value + 1 &&
+                        options[i - 1].Denomination == card.Denomination;
+
+                    int res;
+                    if (isSequenceContinuation && cachedResult.HasValue)
+                    {
+                        // Użyj cachowanego wyniku dla sekwensu
+                        res = cachedResult.Value;
+                    }
+                    else
+                    {
+                        // Oblicz rekurencyjnie
+                        int idx = hand.FindIndex(c =>
+                            c.Denomination == card.Denomination && c.Rank.Value == card.Rank.Value);
+                        hand.RemoveAt(idx);
+                        trick.Add((player, card));
+                        res = PlayTrickBranchInner(hands, nsStrategy, nsSeqIdx, liczbaLew, nsTricks, order, pos + 1, trick);
+                        trick.RemoveAt(trick.Count - 1);
+                        hand.Insert(idx, card);
+
+                        // Cachuj wynik dla potencjalnego sekwensu
+                        cachedResult = res;
+                    }
+
                     if (res < minNS) minNS = res;
-                    trick.RemoveAt(trick.Count - 1);
-                    hand.Insert(idx, card);
                 }
+
                 return minNS == int.MaxValue ? nsTricks : minNS;
             }
         }
@@ -321,19 +349,48 @@ namespace RozgrywkaKoncowa.Logic
                 var toColor = trick.Count > 0 ? trick[0].card.Denomination : CDenomination.Spade;
                 var hasColor = hand.Any(c => c.Denomination == toColor);
                 var options = hasColor ? hand.Where(c => c.Denomination == toColor).ToList() : hand.ToList();
+
+                // Optymalizacja: sortuj po randze malejąco i cachuj wynik dla sekwensów
+                options = options.OrderByDescending(c => c.Rank.Value).ToList();
+
                 int minNS = int.MaxValue;
-                foreach (var card in options)
+                int? cachedResult = null;
+
+                for (int i = 0; i < options.Count; i++)
                 {
-                    int idx = hand.FindIndex(c =>
-                        c.Denomination == card.Denomination && c.Rank.Value == card.Rank.Value);
-                    hand.RemoveAt(idx);
-                    trick.Add((player, card));
-                    debugLog.Add($"{PlayerName(player)}: {card}");
-                    int res = PlayTrickBranch_Debug(hands, nsStrategy, nsSeqIdx, liczbaLew, nsTricks, order, pos + 1, trick, debugLog, starter);
+                    var card = options[i];
+
+                    // Sprawdź czy to początek sekwensu (karta o 1 niższa niż poprzednia)
+                    bool isSequenceContinuation = i > 0 && 
+                        options[i - 1].Rank.Value == card.Rank.Value + 1 &&
+                        options[i - 1].Denomination == card.Denomination;
+
+                    int res;
+                    if (isSequenceContinuation && cachedResult.HasValue)
+                    {
+                        // Użyj cachowanego wyniku dla sekwensu
+                        res = cachedResult.Value;
+                        debugLog.Add($"{PlayerName(player)}: {card} (równoważne z poprzednią kartą w sekwensie)");
+                    }
+                    else
+                    {
+                        // Oblicz rekurencyjnie
+                        int idx = hand.FindIndex(c =>
+                            c.Denomination == card.Denomination && c.Rank.Value == card.Rank.Value);
+                        hand.RemoveAt(idx);
+                        trick.Add((player, card));
+                        debugLog.Add($"{PlayerName(player)}: {card}");
+                        res = PlayTrickBranch_Debug(hands, nsStrategy, nsSeqIdx, liczbaLew, nsTricks, order, pos + 1, trick, debugLog, starter);
+                        trick.RemoveAt(trick.Count - 1);
+                        hand.Insert(idx, card);
+
+                        // Cachuj wynik dla potencjalnego sekwensu
+                        cachedResult = res;
+                    }
+
                     if (res < minNS) minNS = res;
-                    trick.RemoveAt(trick.Count - 1);
-                    hand.Insert(idx, card);
                 }
+
                 return minNS == int.MaxValue ? nsTricks : minNS;
             }
         }
