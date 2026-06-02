@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using RozgrywkaKoncowa.Models;
 using RozgrywkaKoncowa.Logic;
+using RozgrywkaKoncowa.Resources;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -100,7 +101,7 @@ namespace RozgrywkaKoncowa.Controllers
             // Walidacja: puste pola
             if (!northList.Any() || !southList.Any())
             {
-                ViewBag.Error = "Podaj poprawne karty dla N i S (np. AQT lub A10, 234). Dozwolone: A, K, Q, J, T (lub 10), 9-2.";
+                ViewBag.Error = Strings.Get("ErrorInvalidCardsServer");
                 return View(new List<StrategyEvalResult>());
             }
 
@@ -109,12 +110,12 @@ namespace RozgrywkaKoncowa.Controllers
             var southRanks = southList.Select(c => c.Rank.Value).ToList();
             if (northRanks.Distinct().Count() != northRanks.Count)
             {
-                ViewBag.Error = "Karty North się powtarzają. Każda karta może wystąpić tylko raz.";
+                ViewBag.Error = Strings.Get("ErrorDuplicatesNorthServer");
                 return View(new List<StrategyEvalResult>());
             }
             if (southRanks.Distinct().Count() != southRanks.Count)
             {
-                ViewBag.Error = "Karty South się powtarzają. Każda karta może wystąpić tylko raz.";
+                ViewBag.Error = Strings.Get("ErrorDuplicatesSouthServer");
                 return View(new List<StrategyEvalResult>());
             }
 
@@ -125,7 +126,7 @@ namespace RozgrywkaKoncowa.Controllers
             if (intersection.Any())
             {
                 var symbols = intersection.Select(v => CRank.FromValue(v)?.Symbol ?? v.ToString());
-                ViewBag.Error = $"Karty powtarzają się między North i South: {string.Join(", ", symbols)}";
+                ViewBag.Error = Strings.Get("ErrorDuplicatesNSServer", string.Join(", ", symbols));
                 return View(new List<StrategyEvalResult>());
             }
 

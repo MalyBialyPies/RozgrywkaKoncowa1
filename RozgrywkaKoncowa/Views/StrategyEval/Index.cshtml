@@ -1,45 +1,53 @@
 @model List<RozgrywkaKoncowa.Controllers.StrategyEvalResult>
 @{
-    ViewBag.Title = "Ewaluacja strategii NS";
+    ViewBag.Title = Strings.Get("MenuStrategyEval");
     var best = ViewBag.Best as RozgrywkaKoncowa.Controllers.StrategyEvalResult;
     int maxTricks = Model != null && Model.Any() ? Model[0].MaxTricks : 0;
     int targetTricks = ViewBag.TargetTricks != null ? (int)ViewBag.TargetTricks : maxTricks;
     string northStr = ViewBag.NorthStr ?? ViewBag.NorthCards ?? "";
     string southStr = ViewBag.SouthStr ?? ViewBag.SouthCards ?? "";
 }
-<h2>Ewaluacja strategii NS</h2>
+<h2>@Strings.Get("MenuStrategyEval")</h2>
 
 <form method="get" asp-controller="StrategyEval" asp-action="Index" class="mb-4" id="evalForm" onsubmit="return validateForm()">
     <div class="mb-3" style="max-width: 400px;">
-        <label class="form-label">Karty N (piki, np. AQT lub A10)</label>
+        <label class="form-label">@Strings.Get("FormCardsNorth")</label>
         <input type="text" name="northCards" id="northCards" class="form-control" value="@ViewBag.NorthCards" 
-               placeholder="np. AQT, AKJ, A10" />
+               placeholder="@Strings.Get("PlaceholderNorth")" />
         <div id="northError" class="text-danger small" style="display:none;"></div>
     </div>
     <div class="mb-3" style="max-width: 400px;">
-        <label class="form-label">Karty S (piki, np. 234)</label>
+        <label class="form-label">@Strings.Get("FormCardsSouth")</label>
         <input type="text" name="southCards" id="southCards" class="form-control" value="@ViewBag.SouthCards" 
-               placeholder="np. 234, KQJ, 10987" />
+               placeholder="@Strings.Get("PlaceholderSouth")" />
         <div id="southError" class="text-danger small" style="display:none;"></div>
     </div>
     <div class="mb-3" style="max-width: 400px;">
-        <label class="form-label">Oczekiwana liczba lew</label>
+        <label class="form-label">@Strings.Get("FormTargetTricks")</label>
         <input type="number" name="targetTricks" id="targetTricks" class="form-control" 
                value="@ViewBag.TargetTricksInput" min="1" max="13" />
         <div id="targetError" class="text-danger small" style="display:none;"></div>
     </div>
     <div class="mb-3">
-        <button type="submit" class="btn btn-primary">Oblicz</button>
+        <button type="submit" class="btn btn-primary">@Strings.Get("Calculate")</button>
         <span id="spinner" style="display:none; margin-left:10px">
-            <span class="spinner-border spinner-border-sm" role="status"></span> Obliczam...
+            <span class="spinner-border spinner-border-sm" role="status"></span> @Strings.Get("Calculating")
         </span>
     </div>
     <div id="formError" class="alert alert-danger" style="display:none;"></div>
 </form>
 
 <script>
+var errorMsgs = {
+    invalidCards: '@Html.Raw(Strings.Get("ErrorInvalidCards"))',
+    emptyField: '@Html.Raw(Strings.Get("ErrorEmptyField"))',
+    duplicatesNorth: '@Html.Raw(Strings.Get("ErrorDuplicatesNorth"))',
+    duplicatesSouth: '@Html.Raw(Strings.Get("ErrorDuplicatesSouth"))',
+    duplicatesNS: '@Html.Raw(Strings.Get("ErrorDuplicatesNS"))',
+    targetTricks: '@Html.Raw(Strings.Get("ErrorTargetTricks"))'
+};
+
 function validateForm() {
-    // Reset błędów
     document.getElementById('northError').style.display = 'none';
     document.getElementById('southError').style.display = 'none';
     document.getElementById('targetError').style.display = 'none';
@@ -52,55 +60,50 @@ function validateForm() {
     var validRanks = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
     var hasError = false;
 
-    // Normalizuj "10" -> "T"
     north = north.replace(/10/g, 'T');
     south = south.replace(/10/g, 'T');
 
-    // Parsuj karty North
     var northCards = parseCards(north);
     if (northCards === null) {
-        document.getElementById('northError').innerText = 'Niepoprawne karty. Użyj: A, K, Q, J, T (lub 10), 9-2';
+        document.getElementById('northError').innerText = errorMsgs.invalidCards;
         document.getElementById('northError').style.display = 'block';
         hasError = true;
     } else if (northCards.length === 0) {
-        document.getElementById('northError').innerText = 'Pole nie może być puste';
+        document.getElementById('northError').innerText = errorMsgs.emptyField;
         document.getElementById('northError').style.display = 'block';
         hasError = true;
     } else if (hasDuplicates(northCards)) {
-        document.getElementById('northError').innerText = 'Karty się powtarzają u North';
+        document.getElementById('northError').innerText = errorMsgs.duplicatesNorth;
         document.getElementById('northError').style.display = 'block';
         hasError = true;
     }
 
-    // Parsuj karty South
     var southCards = parseCards(south);
     if (southCards === null) {
-        document.getElementById('southError').innerText = 'Niepoprawne karty. Użyj: A, K, Q, J, T (lub 10), 9-2';
+        document.getElementById('southError').innerText = errorMsgs.invalidCards;
         document.getElementById('southError').style.display = 'block';
         hasError = true;
     } else if (southCards.length === 0) {
-        document.getElementById('southError').innerText = 'Pole nie może być puste';
+        document.getElementById('southError').innerText = errorMsgs.emptyField;
         document.getElementById('southError').style.display = 'block';
         hasError = true;
     } else if (hasDuplicates(southCards)) {
-        document.getElementById('southError').innerText = 'Karty się powtarzają u South';
+        document.getElementById('southError').innerText = errorMsgs.duplicatesSouth;
         document.getElementById('southError').style.display = 'block';
         hasError = true;
     }
 
-    // Sprawdź przecięcie NS
     if (northCards && southCards && !hasError) {
         var intersection = northCards.filter(c => southCards.includes(c));
         if (intersection.length > 0) {
-            document.getElementById('formError').innerText = 'Karty powtarzają się między North i South: ' + intersection.join(', ');
+            document.getElementById('formError').innerText = errorMsgs.duplicatesNS + ': ' + intersection.join(', ');
             document.getElementById('formError').style.display = 'block';
             hasError = true;
         }
     }
 
-    // Sprawdź liczbę lew
     if (isNaN(target) || target < 1) {
-        document.getElementById('targetError').innerText = 'Wprowadź liczbę od 1 wzwyż';
+        document.getElementById('targetError').innerText = errorMsgs.targetTricks;
         document.getElementById('targetError').style.display = 'block';
         hasError = true;
     }
@@ -125,10 +128,9 @@ function parseCards(input) {
             if (validRanks.includes(token)) {
                 cards.push(token);
             } else {
-                return null; // Niepoprawna karta
+                return null;
             }
         } else {
-            // Ciąg znaków
             for (var j = 0; j < token.length; j++) {
                 var ch = token[j];
                 if (validRanks.includes(ch)) {
@@ -154,86 +156,82 @@ function hasDuplicates(arr) {
 
 @if (Model != null && Model.Any())
 {
-    <p><b>Rozdanie:</b> N: @northStr &nbsp; S: @southStr &nbsp;&nbsp; <b>Kryterium sortowania:</b> największa szansa na wzięcie <b>co najmniej @targetTricks</b> lew.</p>
+    <p><b>@Strings.Get("Deal"):</b> N: @northStr &nbsp; S: @southStr &nbsp;&nbsp; <b>@Strings.Get("SortCriterion")</b> <b>@Strings.Get("AtLeastTricks", targetTricks) @Strings.Get("Tricks")</b>.</p>
 }
 
 @if (best != null)
 {
     <div style="background: #e0ffe0; padding: 10px; margin-bottom: 10px;">
-        <b>Najlepsza strategia:</b> @best.Strategy<br />
-        <b>Oczekiwana liczba lew:</b> @best.ExpectedTricks<br />
-        <b>Szansa na co najmniej @targetTricks @(targetTricks == 1 ? "lewę" : "lewy"):</b> @best.GetProbabilityAtLeast(targetTricks).ToString("F6") %<br />
-        @{
-            double sumProb = 0;
-        }
+        <b>@Strings.Get("BestStrategy"):</b> @best.Strategy<br />
+        <b>@Strings.Get("ExpectedTricks"):</b> @best.ExpectedTricks<br />
+        <b>@Strings.Get("ChanceAtLeast", targetTricks) @Strings.Get("Tricks"):</b> @best.GetProbabilityAtLeast(targetTricks).ToString("F6") %<br />
         @for (int k = maxTricks; k >= 0; k--)
         {
-            var label = k == 1 ? "lewę" : "lewy";
-            var val = best.PTricks[k];
-            sumProb += val;
-            <text><b>Szansa na dokładnie @k @label:</b> @val.ToString("F6") %<br /></text>
+            var tricksWord = k == 1 ? Strings.Get("Trick") : Strings.Get("Tricks");
+            <text><b>@Strings.Get("ChanceExactly", k) @tricksWord:</b> @best.PTricks[k].ToString("F6") %<br /></text>
         }
-        <text><i>(Suma kontrolna: @sumProb.ToString("F6") %)</i></text>
+        (<b>@Strings.Get("ControlSum"):</b> @best.PTricks.Sum().ToString("F6") %)
     </div>
 }
+
 @if (Model != null && Model.Any())
 {
-    foreach (var item in Model)
-    {
-    <div style="margin-bottom: 24px; border: 1px solid #ccc; padding: 10px;">
-        <h4>Strategia: <b>@item.Strategy</b></h4>
-        <table class="table table-bordered table-sm" style="width:auto">
-            <thead>
+    <h3>@Strings.Get("Details")</h3>
+    <table class="table table-sm table-striped">
+        <thead>
+            <tr>
+                <th>@Strings.Get("Strategy")</th>
+                <th>@Strings.Get("ExpectedTricks")</th>
+                <th>@Strings.Get("ChanceAtLeast", targetTricks) @Strings.Get("Tricks") (%)</th>
+                @for (int k = maxTricks; k >= 0; k--)
+                {
+                    <th>@k</th>
+                }
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in Model)
+            {
                 <tr>
-                    <th>EX (oczekiwana)</th>
-                    <th style="background:#90ee90"><b>P(≥@targetTricks) (%)</b></th>
-                    @for (int k = maxTricks; k >= 0; k--)
-                    {
-                        var label = k == 1 ? "lewę" : "lewy";
-                        <th>P(=@k) (%)</th>
-                    }
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
+                    <td>@item.Strategy</td>
                     <td>@item.ExpectedTricks</td>
-                    <td style="background:#90ee90"><b>@item.GetProbabilityAtLeast(targetTricks).ToString("F6")</b></td>
+                    <td>@item.GetProbabilityAtLeast(targetTricks).ToString("F6")</td>
                     @for (int k = maxTricks; k >= 0; k--)
                     {
                         <td>@item.PTricks[k].ToString("F6")</td>
-                        }
                     }
                 </tr>
-            </tbody>
-        </table>
-        <details>
-            <summary>Analiza rozkładów WE</summary>
-            <table class="table table-bordered table-sm" style="width:auto; margin-top:6px">
-                <thead>
-                    <tr>
-                        <th>W</th>
-                        <th>E</th>
-                        <th>Prawdop. (%)</th>
-                        <th>Lewy NS</th>
-                    </tr>
-                </thead>
-                <tbody>
-                @foreach (var d in item.Details)
+            }
+        </tbody>
+    </table>
+
+    @if (best != null && best.Details.Any())
+    {
+        <h4>@Strings.Get("Details") - @best.Strategy</h4>
+        <table class="table table-sm">
+            <thead>
+                <tr>
+                    <th>@Strings.Get("WestDist")</th>
+                    <th>@Strings.Get("EastDist")</th>
+                    <th>@Strings.Get("Probability") (%)</th>
+                    <th>@Strings.Get("Result")</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var d in best.Details)
                 {
                     <tr>
-                        <td>@(string.IsNullOrWhiteSpace(d.WDist) ? "–" : d.WDist)</td>
-                        <td>@(string.IsNullOrWhiteSpace(d.EDist) ? "–" : d.EDist)</td>
+                        <td>@(string.IsNullOrEmpty(d.WDist) ? "-" : d.WDist)</td>
+                        <td>@(string.IsNullOrEmpty(d.EDist) ? "-" : d.EDist)</td>
                         <td>@d.Probability.ToString("F6")</td>
                         <td>@d.NSTricks</td>
                     </tr>
                 }
-                </tbody>
-            </table>
-        </details>
-    </div>
+            </tbody>
+        </table>
     }
 }
 else if (ViewBag.Error == null)
 {
-    <div>Brak danych do wyświetlenia.</div>
+    <p class="text-muted">@Strings.Get("NoData")</p>
 }
