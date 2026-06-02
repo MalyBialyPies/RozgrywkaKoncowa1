@@ -15,12 +15,42 @@ namespace RozgrywkaKoncowa.Logic
 
     public static class StrategyGenerator
     {
-        // Rekurencyjny generator strategii: dla każdej lewy wybiera jedną kartę z N i jedną z S, permutuje kolejność w lewie
+        // Rekurencyjny generator strategii: dla każdej lewy wybiera jedną kartę z N i jedną z S, permutuje kolejność w lewy
+        // Optymalizacja: karty w sekwensie (np. 4-3-2) są równoważne strategicznie
         public static List<NSStrategy> GenerateAllStrategies(CHand north, CHand south, int tricks)
         {
             var result = new List<NSStrategy>();
             GenerateRecursive(north.ToList(), south.ToList(), 0, tricks, new List<(int, CCard, int)>(), result);
             return result;
+        }
+
+        // Grupuje karty według sekwensów i zwraca listę grup (każda grupa to sekwens kart)
+        // Sekwens = karty o kolejnych wartościach (np. 7-6-5 albo A-K-Q)
+        private static List<List<CCard>> GroupBySequences(List<CCard> cards)
+        {
+            if (cards.Count == 0) return new List<List<CCard>>();
+
+            var sorted = cards.OrderByDescending(c => c.Rank.Value).ToList();
+            var groups = new List<List<CCard>>();
+            var currentSequence = new List<CCard> { sorted[0] };
+
+            for (int i = 1; i < sorted.Count; i++)
+            {
+                if (sorted[i].Rank.Value == sorted[i-1].Rank.Value - 1)
+                {
+                    // Kontynuacja sekwensu
+                    currentSequence.Add(sorted[i]);
+                }
+                else
+                {
+                    // Koniec sekwensu, zacznij nowy
+                    groups.Add(currentSequence);
+                    currentSequence = new List<CCard> { sorted[i] };
+                }
+            }
+            groups.Add(currentSequence);
+
+            return groups;
         }
 
         private static void GenerateRecursive(List<CCard> n, List<CCard> s, int lewaIdx, int tricks, List<(int, CCard, int)> current, List<NSStrategy> result)
@@ -30,17 +60,27 @@ namespace RozgrywkaKoncowa.Logic
                 result.Add(new NSStrategy { Sequence = new List<(int, CCard, int)>(current) });
                 return;
             }
-            for (int i = 0; i < n.Count; i++)
+
+            // Grupuj karty według sekwensów
+            var nGroups = GroupBySequences(n);
+            var sGroups = GroupBySequences(s);
+
+            // Dla każdej grupy sekwensu używamy tylko najwyższej karty (reprezentanta)
+            foreach (var nGroup in nGroups)
             {
-                for (int j = 0; j < s.Count; j++)
+                foreach (var sGroup in sGroups)
                 {
-                    var nCard = n[i];
-                    var sCard = s[j];
-                    var nextN = n.Where((x, idx) => idx != i).ToList();
-                    var nextS = s.Where((x, idx) => idx != j).ToList();
+                    var nCard = nGroup[0]; // Najwyższa karta w sekwensie N
+                    var sCard = sGroup[0]; // Najwyższa karta w sekwensie S
+
+                    // Usuń wybraną kartę z ręki
+                    var nextN = n.Where(c => c != nCard).ToList();
+                    var nextS = s.Where(c => c != sCard).ToList();
+
                     // Najpierw N, potem S
                     var nextCurrent1 = new List<(int, CCard, int)>(current) { (0, nCard, lewaIdx), (2, sCard, lewaIdx) };
                     GenerateRecursive(nextN, nextS, lewaIdx + 1, tricks, nextCurrent1, result);
+
                     // Najpierw S, potem N
                     var nextCurrent2 = new List<(int, CCard, int)>(current) { (2, sCard, lewaIdx), (0, nCard, lewaIdx) };
                     GenerateRecursive(nextN, nextS, lewaIdx + 1, tricks, nextCurrent2, result);
