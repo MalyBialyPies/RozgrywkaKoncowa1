@@ -28,6 +28,13 @@
                value="@ViewBag.TargetTricksInput" min="1" max="13" />
         <div id="targetError" class="text-danger small" style="display:none;"></div>
     </div>
+    <div class="mb-3 form-check">
+        <input type="checkbox" name="compress" id="compress" class="form-check-input" value="true" 
+               @(ViewBag.Compress == true ? "checked" : "") />
+        <label class="form-check-label" for="compress">
+            @Strings.Get("CompressBySequences")
+        </label>
+    </div>
     <div class="mb-3">
         <button type="submit" class="btn btn-primary">@Strings.Get("Calculate")</button>
         <span id="spinner" style="display:none; margin-left:10px">
@@ -192,8 +199,26 @@ function hasDuplicates(arr) {
         <tbody>
             @foreach (var item in Model)
             {
+                var rowId = "strategy-" + Model.IndexOf(item);
+                var isCompressed = item.IsCompressed;
+
                 <tr>
-                    <td>@item.Strategy</td>
+                    <td>
+                        @if (isCompressed)
+                        {
+                            <span>
+                                @item.Strategy 
+                                <small class="text-muted">(@item.VariantCount @Strings.Get("Variants"))</small>
+                            </span>
+                            <button type="button" class="btn btn-sm btn-link" onclick="toggleVariants('@rowId')">
+                                <span id="@rowId-toggle">@Strings.Get("ExpandGroup")</span>
+                            </button>
+                        }
+                        else
+                        {
+                            @item.Strategy
+                        }
+                    </td>
                     <td>@item.ExpectedTricks</td>
                     <td>@item.GetProbabilityAtLeast(targetTricks).ToString("F6")</td>
                     @for (int k = maxTricks; k >= 0; k--)
@@ -201,9 +226,37 @@ function hasDuplicates(arr) {
                         <td>@item.PTricks[k].ToString("F6")</td>
                     }
                 </tr>
+                @if (isCompressed && item.AllVariants != null && item.AllVariants.Any())
+                {
+                    <tr id="@rowId-variants" style="display:none;">
+                        <td colspan="@(3 + maxTricks + 1)" class="bg-light">
+                            <small><b>@Strings.Get("Variants"):</b></small>
+                            <ul class="mb-0">
+                                @foreach (var variant in item.AllVariants)
+                                {
+                                    <li><small>@variant</small></li>
+                                }
+                            </ul>
+                        </td>
+                    </tr>
+                }
             }
         </tbody>
     </table>
+
+    <script>
+    function toggleVariants(rowId) {
+        var variantsRow = document.getElementById(rowId + '-variants');
+        var toggleText = document.getElementById(rowId + '-toggle');
+        if (variantsRow.style.display === 'none') {
+            variantsRow.style.display = 'table-row';
+            toggleText.innerText = '@Html.Raw(Strings.Get("CollapseGroup"))';
+        } else {
+            variantsRow.style.display = 'none';
+            toggleText.innerText = '@Html.Raw(Strings.Get("ExpandGroup"))';
+        }
+    }
+    </script>
 
     @if (best != null && best.Details.Any())
     {

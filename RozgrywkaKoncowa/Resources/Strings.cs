@@ -55,6 +55,12 @@ namespace RozgrywkaKoncowa.Resources
                 ["EastDist"] = "Rozdanie E",
                 ["Probability"] = "Prawdopodobieństwo",
                 ["Result"] = "Wynik",
+
+                // Kompresja strategii
+                ["CompressBySequences"] = "Kompresuj według sekwensów",
+                ["ExpandGroup"] = "Rozwiń grupę",
+                ["CollapseGroup"] = "Zwiń grupę",
+                ["Variants"] = "wariantów",
             },
             ["en"] = new Dictionary<string, string>
             {
@@ -105,6 +111,12 @@ namespace RozgrywkaKoncowa.Resources
                 ["EastDist"] = "East distribution",
                 ["Probability"] = "Probability",
                 ["Result"] = "Result",
+
+                // Strategy compression
+                ["CompressBySequences"] = "Compress by sequences",
+                ["ExpandGroup"] = "Expand group",
+                ["CollapseGroup"] = "Collapse group",
+                ["Variants"] = "variants",
             }
         };
 

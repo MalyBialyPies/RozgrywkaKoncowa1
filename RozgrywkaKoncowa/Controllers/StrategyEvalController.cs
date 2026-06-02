@@ -25,6 +25,11 @@ namespace RozgrywkaKoncowa.Controllers
         public int MaxTricks { get; set; }
         public List<StrategyEvalDetail> Details { get; set; } = new();
 
+        // Dodatkowe pola dla kompresji
+        public int VariantCount { get; set; } = 1;
+        public List<string> AllVariants { get; set; } = new();
+        public bool IsCompressed => VariantCount > 1;
+
         // Metoda pomocnicza: prawdopodobieństwo wzięcia co najmniej N lew
         public double GetProbabilityAtLeast(int targetTricks)
         {
@@ -82,11 +87,12 @@ namespace RozgrywkaKoncowa.Controllers
         }
 
         [HttpGet]
-        public IActionResult Index(string northCards = null, string southCards = null, int? targetTricks = null)
+        public IActionResult Index(string northCards = null, string southCards = null, int? targetTricks = null, bool compress = false)
         {
             ViewBag.NorthCards = northCards ?? "AQT";
             ViewBag.SouthCards = southCards ?? "234";
             ViewBag.TargetTricksInput = targetTricks ?? 2;
+            ViewBag.Compress = compress;
 
             // JeĹ›li brak parametrĂłw â€“ pokaĹĽ tylko formularz
             if (northCards == null && southCards == null)
@@ -151,6 +157,14 @@ namespace RozgrywkaKoncowa.Controllers
             var northSpades = new CHand(northList);
             var southSpades = new CHand(southList);
             var strategies = StrategyGenerator.GenerateAllStrategies(northSpades, southSpades, liczbaLew);
+
+            // Opcjonalnie grupuj strategie według sekwensów
+            List<StrategyGroup> strategyGroups = null;
+            if (compress)
+            {
+                strategyGroups = StrategyGenerator.GroupStrategiesByEquivalence(northSpades, southSpades, strategies);
+                ViewBag.StrategyGroups = strategyGroups;
+            }
 
             int n = wePool.Length;
             int totalCombos = 1 << n;
@@ -242,20 +256,64 @@ namespace RozgrywkaKoncowa.Controllers
             }
 
             // Sortowanie: P(≥target) malejąco, potem EX malejąco
-            var best = results
+            var sortedResults = results
                 .OrderByDescending(r => GetProbabilityAtLeast(r, target))
                 .ThenByDescending(r => r.ExpectedTricks)
-                .FirstOrDefault();
+                .ToList();
 
-            ViewBag.Best = best;
             ViewBag.TargetTricks = target;
             ViewBag.NorthStr = string.Join(" ", northList.Select(c => c.Rank.Symbol));
             ViewBag.SouthStr = string.Join(" ", southList.Select(c => c.Rank.Symbol));
 
-            return View(results
-                .OrderByDescending(r => GetProbabilityAtLeast(r, target))
-                .ThenByDescending(r => r.ExpectedTricks)
-                .ToList());
+            // Jeśli compress=true, przekonwertuj zgrupowane strategie na listę wyników
+            if (compress && strategyGroups != null)
+            {
+                var compressedResults = new List<StrategyEvalResult>();
+                foreach (var group in strategyGroups)
+                {
+                    // Znajdź NAJLEPSZY wynik z tej grupy (nie tylko reprezentant)
+                    StrategyEvalResult bestInGroup = null;
+                    var allGroupResults = new List<StrategyEvalResult>();
+
+                    foreach (var variant in group.AllVariants)
+                    {
+                        var variantResult = results.FirstOrDefault(r => r.Strategy == variant.ToString());
+                        if (variantResult != null)
+                        {
+                            allGroupResults.Add(variantResult);
+                        }
+                    }
+
+                    // Wybierz najlepszy wariant z grupy (według tego samego kryterium sortowania)
+                    if (allGroupResults.Any())
+                    {
+                        bestInGroup = allGroupResults
+                            .OrderByDescending(r => GetProbabilityAtLeast(r, target))
+                            .ThenByDescending(r => r.ExpectedTricks)
+                            .First();
+
+                        // NIE nadpisuj Strategy - zostaw oryginalną najlepszą strategię z grupy
+                        bestInGroup.VariantCount = group.Count;
+                        bestInGroup.AllVariants = group.AllVariants.Select(s => s.ToString()).ToList();
+                        compressedResults.Add(bestInGroup);
+                    }
+                }
+
+                // Posortuj zgrupowane wyniki
+                var sortedCompressed = compressedResults
+                    .OrderByDescending(r => GetProbabilityAtLeast(r, target))
+                    .ThenByDescending(r => r.ExpectedTricks)
+                    .ToList();
+
+                // Ustaw best na podstawie skompresowanych wyników
+                ViewBag.Best = sortedCompressed.FirstOrDefault();
+
+                return View(sortedCompressed);
+            }
+
+            // Ustaw best na podstawie nieskompresowanych wyników
+            ViewBag.Best = sortedResults.FirstOrDefault();
+            return View(sortedResults);
         }
 
         private static double Comb(int n, int k)

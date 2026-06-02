@@ -7,9 +7,87 @@ namespace RozgrywkaKoncowa.Logic
     public class NSStrategy
     {
         public List<(int playerIdx, CCard card, int lewa)> Sequence { get; set; } = new(); // playerIdx: 0=N, 2=S, lewa: nr lewy
+
         public override string ToString()
         {
-            return string.Join("   ", Sequence.GroupBy(x => x.lewa).Select(g => string.Join(", ", g.Select(x => $"{(x.playerIdx == 0 ? "N" : "S")}:{x.card.Rank.Symbol}"))));
+            // Format: "S:4 N:T, S:3 N:Q, N:A S:2"
+            // Ruchy w tej samej lewie oddzielone spacją, lewy oddzielone przecinkiem i spacją
+            return string.Join(", ", Sequence.GroupBy(x => x.lewa)
+                .Select(g => string.Join(" ", g.Select(x => $"{(x.playerIdx == 0 ? "N" : "S")}:{x.card.Rank.Symbol}"))));
+        }
+
+        // Generuje klucz normalizacji dla grupowania równoważnych strategii
+        // Karty w sekwensach są zastępowane wspólnym reprezentantem
+        // TYLKO w ostatniej lewie kolejność nie ma znaczenia
+        public string GetNormalizedKey(List<List<CCard>> northSequences, List<List<CCard>> southSequences)
+        {
+            var trickGroups = Sequence.GroupBy(x => x.lewa).OrderBy(g => g.Key).ToList();
+            var normalized = new List<string>();
+            var lastTrick = trickGroups.Count - 1;
+
+            for (int i = 0; i < trickGroups.Count; i++)
+            {
+                var trick = trickGroups[i];
+                var isLastTrick = (i == lastTrick);
+
+                IEnumerable<(int playerIdx, CCard card, int lewa)> orderedMoves;
+
+                if (isLastTrick)
+                {
+                    // W ostatniej lewie sortuj ruchy (kolejność nie ma znaczenia)
+                    orderedMoves = trick.OrderBy(m => m.playerIdx);
+                }
+                else
+                {
+                    // W pozostałych lewach zachowaj oryginalną kolejność (kto wychodzi jest ważne)
+                    orderedMoves = trick;
+                }
+
+                var trickMoves = orderedMoves.Select(move =>
+                {
+                    var sequences = move.playerIdx == 0 ? northSequences : southSequences;
+                    var seqIndex = FindSequenceIndex(sequences, move.card);
+                    var posInSeq = seqIndex >= 0 ? FindPositionInSequence(sequences[seqIndex], move.card) : 0;
+                    var player = move.playerIdx == 0 ? "N" : "S";
+                    return $"{player}:Seq{seqIndex}[{posInSeq}]";
+                }).ToList();
+
+                normalized.Add(string.Join(" ", trickMoves));
+            }
+
+            return string.Join(", ", normalized);
+        }
+
+        private int FindSequenceIndex(List<List<CCard>> sequences, CCard card)
+        {
+            for (int i = 0; i < sequences.Count; i++)
+            {
+                if (sequences[i].Any(c => c.Rank.Value == card.Rank.Value))
+                    return i;
+            }
+            return -1;
+        }
+
+        private int FindPositionInSequence(List<CCard> sequence, CCard card)
+        {
+            return sequence.FindIndex(c => c.Rank.Value == card.Rank.Value);
+        }
+    }
+
+    public class StrategyGroup
+    {
+        public string NormalizedKey { get; set; }
+        public NSStrategy Representative { get; set; }
+        public List<NSStrategy> AllVariants { get; set; } = new();
+        public int Count => AllVariants.Count;
+
+        public string GetDisplayString()
+        {
+            if (Count == 1)
+                return Representative.ToString();
+
+            // Formatuj z oznaczeniem sekwensów, np. "N:(A|K) S:(2|3)"
+            return Representative.ToString() + $" [×{Count} wariantów]";
         }
     }
 
@@ -23,6 +101,35 @@ namespace RozgrywkaKoncowa.Logic
             var result = new List<NSStrategy>();
             GenerateRecursive(north.ToList(), south.ToList(), 0, tricks, new List<(int, CCard, int)>(), result);
             return result;
+        }
+
+        // Grupuje strategie według klas równoważności (sekwensów)
+        // Zwraca tylko reprezentantów każdej klasy
+        public static List<StrategyGroup> GroupStrategiesByEquivalence(CHand north, CHand south, List<NSStrategy> strategies)
+        {
+            var northSeqs = GroupBySequences(north.ToList());
+            var southSeqs = GroupBySequences(south.ToList());
+
+            var groups = new Dictionary<string, StrategyGroup>();
+
+            foreach (var strategy in strategies)
+            {
+                var key = strategy.GetNormalizedKey(northSeqs, southSeqs);
+
+                if (!groups.ContainsKey(key))
+                {
+                    groups[key] = new StrategyGroup
+                    {
+                        NormalizedKey = key,
+                        Representative = strategy,
+                        AllVariants = new List<NSStrategy>()
+                    };
+                }
+
+                groups[key].AllVariants.Add(strategy);
+            }
+
+            return groups.Values.OrderBy(g => g.NormalizedKey).ToList();
         }
 
         // Grupuje karty według sekwensów i zwraca listę grup (każda grupa to sekwens kart)
