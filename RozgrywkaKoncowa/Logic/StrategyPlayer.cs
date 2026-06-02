@@ -177,8 +177,28 @@ namespace RozgrywkaKoncowa.Logic
                     }
                 }
                 // Gramy zgodnie ze strategią
+                // Jeśli gracz nie ma ruchu w strategii (brak kart), dorzuca najmniejszą kartę
                 if (nsSeqIdx >= nsStrategy.Count || nsStrategy[nsSeqIdx].playerIdx != player)
-                    return nsTricks;
+                {
+                    // Gracz nie ma zaplanowanego ruchu - musi dorzucić kartę
+                    var toColor = trick.Count > 0 ? trick[0].card.Denomination : CDenomination.Spade;
+                    var hasColor = nsHand.Any(c => c.Denomination == toColor);
+                    var fallbackCard = hasColor 
+                        ? nsHand.Where(c => c.Denomination == toColor).OrderBy(c => c.Rank.Value).FirstOrDefault()
+                        : nsHand.OrderBy(c => c.Rank.Value).FirstOrDefault();
+
+                    if (fallbackCard == null) return nsTricks; // Nie ma żadnej karty (nie powinno się zdarzyć)
+
+                    int fbIdx = nsHand.FindIndex(c => 
+                        c.Denomination == fallbackCard.Denomination && c.Rank.Value == fallbackCard.Rank.Value);
+                    nsHand.RemoveAt(fbIdx);
+                    trick.Add((player, fallbackCard));
+                    int resFb = PlayTrickBranchInner(hands, nsStrategy, nsSeqIdx, liczbaLew, nsTricks, order, pos + 1, trick);
+                    trick.RemoveAt(trick.Count - 1);
+                    nsHand.Insert(fbIdx, fallbackCard);
+                    return resFb;
+                }
+
                 var card = nsStrategy[nsSeqIdx].card;
                 int idx = nsHand.FindIndex(c =>
                     c.Denomination == card.Denomination && c.Rank.Value == card.Rank.Value);
@@ -329,8 +349,29 @@ namespace RozgrywkaKoncowa.Logic
                     }
                 }
                 // Gramy zgodnie ze strategią
+                // Jeśli gracz nie ma ruchu w strategii (brak kart), dorzuca najmniejszą kartę
                 if (nsSeqIdx >= nsStrategy.Count || nsStrategy[nsSeqIdx].playerIdx != player)
-                    return nsTricks;
+                {
+                    // Gracz nie ma zaplanowanego ruchu - musi dorzucić kartę
+                    var toColor = trick.Count > 0 ? trick[0].card.Denomination : CDenomination.Spade;
+                    var hasColor = nsHand.Any(c => c.Denomination == toColor);
+                    var fallbackCard = hasColor 
+                        ? nsHand.Where(c => c.Denomination == toColor).OrderBy(c => c.Rank.Value).FirstOrDefault()
+                        : nsHand.OrderBy(c => c.Rank.Value).FirstOrDefault();
+
+                    if (fallbackCard == null) return nsTricks; // Nie ma żadnej karty (nie powinno się zdarzyć)
+
+                    int fbIdx = nsHand.FindIndex(c => 
+                        c.Denomination == fallbackCard.Denomination && c.Rank.Value == fallbackCard.Rank.Value);
+                    nsHand.RemoveAt(fbIdx);
+                    trick.Add((player, fallbackCard));
+                    debugLog.Add($"{PlayerName(player)}: {fallbackCard} (brak kart w strategii, dorzuca)");
+                    int resFb = PlayTrickBranch_Debug(hands, nsStrategy, nsSeqIdx, liczbaLew, nsTricks, order, pos + 1, trick, debugLog, starter);
+                    trick.RemoveAt(trick.Count - 1);
+                    nsHand.Insert(fbIdx, fallbackCard);
+                    return resFb;
+                }
+
                 var card = nsStrategy[nsSeqIdx].card;
                 int idx = nsHand.FindIndex(c =>
                     c.Denomination == card.Denomination && c.Rank.Value == card.Rank.Value);

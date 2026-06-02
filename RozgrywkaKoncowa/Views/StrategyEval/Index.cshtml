@@ -9,29 +9,143 @@
 }
 <h2>Ewaluacja strategii NS</h2>
 
-<form method="get" asp-controller="StrategyEval" asp-action="Index" class="mb-4" id="evalForm" onsubmit="showSpinner()">
-    <div class="row g-2 align-items-end">
-        <div class="col-auto">
-            <label class="form-label">Karty N (piki, np. AQT)</label>
-            <input type="text" name="northCards" class="form-control" value="@ViewBag.NorthCards" style="width:120px" />
-        </div>
-        <div class="col-auto">
-            <label class="form-label">Karty S (piki, np. 234)</label>
-            <input type="text" name="southCards" class="form-control" value="@ViewBag.SouthCards" style="width:120px" />
-        </div>
-        <div class="col-auto">
-            <label class="form-label">Oczekiwana liczba lew</label>
-            <input type="number" name="targetTricks" class="form-control" value="@ViewBag.TargetTricksInput" min="1" style="width:80px" />
-        </div>
-        <div class="col-auto">
-            <button type="submit" class="btn btn-primary">Oblicz</button>
-            <span id="spinner" style="display:none; margin-left:10px">
-                <span class="spinner-border spinner-border-sm" role="status"></span> Obliczam...
-            </span>
-        </div>
+<form method="get" asp-controller="StrategyEval" asp-action="Index" class="mb-4" id="evalForm" onsubmit="return validateForm()">
+    <div class="mb-3" style="max-width: 400px;">
+        <label class="form-label">Karty N (piki, np. AQT lub A10)</label>
+        <input type="text" name="northCards" id="northCards" class="form-control" value="@ViewBag.NorthCards" 
+               placeholder="np. AQT, AKJ, A10" />
+        <div id="northError" class="text-danger small" style="display:none;"></div>
     </div>
+    <div class="mb-3" style="max-width: 400px;">
+        <label class="form-label">Karty S (piki, np. 234)</label>
+        <input type="text" name="southCards" id="southCards" class="form-control" value="@ViewBag.SouthCards" 
+               placeholder="np. 234, KQJ, 10987" />
+        <div id="southError" class="text-danger small" style="display:none;"></div>
+    </div>
+    <div class="mb-3" style="max-width: 400px;">
+        <label class="form-label">Oczekiwana liczba lew</label>
+        <input type="number" name="targetTricks" id="targetTricks" class="form-control" 
+               value="@ViewBag.TargetTricksInput" min="1" max="13" />
+        <div id="targetError" class="text-danger small" style="display:none;"></div>
+    </div>
+    <div class="mb-3">
+        <button type="submit" class="btn btn-primary">Oblicz</button>
+        <span id="spinner" style="display:none; margin-left:10px">
+            <span class="spinner-border spinner-border-sm" role="status"></span> Obliczam...
+        </span>
+    </div>
+    <div id="formError" class="alert alert-danger" style="display:none;"></div>
 </form>
-<script>function showSpinner() { document.getElementById('spinner').style.display='inline'; }</script>
+
+<script>
+function validateForm() {
+    // Reset błędów
+    document.getElementById('northError').style.display = 'none';
+    document.getElementById('southError').style.display = 'none';
+    document.getElementById('targetError').style.display = 'none';
+    document.getElementById('formError').style.display = 'none';
+
+    var north = document.getElementById('northCards').value.trim().toUpperCase();
+    var south = document.getElementById('southCards').value.trim().toUpperCase();
+    var target = parseInt(document.getElementById('targetTricks').value);
+
+    var validRanks = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
+    var hasError = false;
+
+    // Normalizuj "10" -> "T"
+    north = north.replace(/10/g, 'T');
+    south = south.replace(/10/g, 'T');
+
+    // Parsuj karty North
+    var northCards = parseCards(north);
+    if (northCards === null) {
+        document.getElementById('northError').innerText = 'Niepoprawne karty. Użyj: A, K, Q, J, T (lub 10), 9-2';
+        document.getElementById('northError').style.display = 'block';
+        hasError = true;
+    } else if (northCards.length === 0) {
+        document.getElementById('northError').innerText = 'Pole nie może być puste';
+        document.getElementById('northError').style.display = 'block';
+        hasError = true;
+    } else if (hasDuplicates(northCards)) {
+        document.getElementById('northError').innerText = 'Karty się powtarzają u North';
+        document.getElementById('northError').style.display = 'block';
+        hasError = true;
+    }
+
+    // Parsuj karty South
+    var southCards = parseCards(south);
+    if (southCards === null) {
+        document.getElementById('southError').innerText = 'Niepoprawne karty. Użyj: A, K, Q, J, T (lub 10), 9-2';
+        document.getElementById('southError').style.display = 'block';
+        hasError = true;
+    } else if (southCards.length === 0) {
+        document.getElementById('southError').innerText = 'Pole nie może być puste';
+        document.getElementById('southError').style.display = 'block';
+        hasError = true;
+    } else if (hasDuplicates(southCards)) {
+        document.getElementById('southError').innerText = 'Karty się powtarzają u South';
+        document.getElementById('southError').style.display = 'block';
+        hasError = true;
+    }
+
+    // Sprawdź przecięcie NS
+    if (northCards && southCards && !hasError) {
+        var intersection = northCards.filter(c => southCards.includes(c));
+        if (intersection.length > 0) {
+            document.getElementById('formError').innerText = 'Karty powtarzają się między North i South: ' + intersection.join(', ');
+            document.getElementById('formError').style.display = 'block';
+            hasError = true;
+        }
+    }
+
+    // Sprawdź liczbę lew
+    if (isNaN(target) || target < 1) {
+        document.getElementById('targetError').innerText = 'Wprowadź liczbę od 1 wzwyż';
+        document.getElementById('targetError').style.display = 'block';
+        hasError = true;
+    }
+
+    if (!hasError) {
+        document.getElementById('spinner').style.display = 'inline';
+    }
+
+    return !hasError;
+}
+
+function parseCards(input) {
+    if (!input) return [];
+    var normalized = input.replace(/[,;]/g, ' ').trim();
+    var validRanks = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
+    var cards = [];
+
+    var tokens = normalized.split(/\s+/);
+    for (var i = 0; i < tokens.length; i++) {
+        var token = tokens[i];
+        if (token.length === 1) {
+            if (validRanks.includes(token)) {
+                cards.push(token);
+            } else {
+                return null; // Niepoprawna karta
+            }
+        } else {
+            // Ciąg znaków
+            for (var j = 0; j < token.length; j++) {
+                var ch = token[j];
+                if (validRanks.includes(ch)) {
+                    cards.push(ch);
+                } else {
+                    return null;
+                }
+            }
+        }
+    }
+    return cards;
+}
+
+function hasDuplicates(arr) {
+    return new Set(arr).size !== arr.length;
+}
+</script>
 
 @if (ViewBag.Error != null)
 {

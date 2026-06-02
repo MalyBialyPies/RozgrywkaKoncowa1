@@ -55,7 +55,8 @@ namespace RozgrywkaKoncowa.Controllers
             var cards = new List<CCard>();
             if (string.IsNullOrWhiteSpace(input)) return cards;
             var normalized = input.ToUpperInvariant()
-                .Replace(",", " ").Replace(";", " ");
+                .Replace(",", " ").Replace(";", " ")
+                .Replace("10", "T"); // Zamień "10" na "T" przed parsowaniem
             // Najpierw sprĂłbuj split po spacjach (np. "A Q T")
             var tokens = normalized.Split(' ', StringSplitOptions.RemoveEmptyEntries);
             foreach (var token in tokens)
@@ -95,26 +96,47 @@ namespace RozgrywkaKoncowa.Controllers
 
             var northList = ParseCards(northCards);
             var southList = ParseCards(southCards);
+
+            // Walidacja: puste pola
             if (!northList.Any() || !southList.Any())
             {
-                ViewBag.Error = "Podaj poprawne karty dla N i S (np. AQT i 234).";
+                ViewBag.Error = "Podaj poprawne karty dla N i S (np. AQT lub A10, 234). Dozwolone: A, K, Q, J, T (lub 10), 9-2.";
+                return View(new List<StrategyEvalResult>());
+            }
+
+            // Walidacja: duplikaty w jednej ręce
+            var northRanks = northList.Select(c => c.Rank.Value).ToList();
+            var southRanks = southList.Select(c => c.Rank.Value).ToList();
+            if (northRanks.Distinct().Count() != northRanks.Count)
+            {
+                ViewBag.Error = "Karty North się powtarzają. Każda karta może wystąpić tylko raz.";
+                return View(new List<StrategyEvalResult>());
+            }
+            if (southRanks.Distinct().Count() != southRanks.Count)
+            {
+                ViewBag.Error = "Karty South się powtarzają. Każda karta może wystąpić tylko raz.";
+                return View(new List<StrategyEvalResult>());
+            }
+
+            // Walidacja: przecięcie NS
+            var northSet = new HashSet<int>(northRanks);
+            var southSet = new HashSet<int>(southRanks);
+            var intersection = northSet.Intersect(southSet).ToList();
+            if (intersection.Any())
+            {
+                var symbols = intersection.Select(v => CRank.FromValue(v)?.Symbol ?? v.ToString());
+                ViewBag.Error = $"Karty powtarzają się między North i South: {string.Join(", ", symbols)}";
                 return View(new List<StrategyEvalResult>());
             }
 
             int target = targetTricks ?? 2;
 
-            var north = new CHand(northList);
-            var south = new CHand(southList);
-            int maxLen = Math.Max(north.Count, south.Count);
-            while (north.Count < maxLen)
-                north.Add(new CCard(club, CRank.FromValue(north.Count + 2)));
-            while (south.Count < maxLen)
-                south.Add(new CCard(club, CRank.FromValue(south.Count + 2)));
-            int liczbaLew = maxLen;
+            // Liczba lew = maksymalna liczba pików (dłuższa ręka)
+            int liczbaLew = Math.Max(northList.Count, southList.Count);
             if (target < 1) target = 1;
             if (target > liczbaLew) target = liczbaLew;
 
-            // Karty WE = wszystkie piki z wyjÄ…tkiem kart NS
+            // Karty WE = wszystkie piki z wyjątkiem kart NS
             var nsRanks = northList.Concat(southList).Select(c => c.Rank.Value).ToHashSet();
             var allSpadeRanks = new[] { CRank.RA, CRank.RK, CRank.RQ, CRank.RJ, CRank.RT,
                                         CRank.R9, CRank.R8, CRank.R7, CRank.R6, CRank.R5,
@@ -124,7 +146,10 @@ namespace RozgrywkaKoncowa.Controllers
                 .Select(r => new CCard(spade, r))
                 .ToArray();
 
-            var strategies = StrategyGenerator.GenerateAllStrategies(north, south, liczbaLew);
+            // Generuj strategie TYLKO dla pików (bez treflów)
+            var northSpades = new CHand(northList);
+            var southSpades = new CHand(southList);
+            var strategies = StrategyGenerator.GenerateAllStrategies(northSpades, southSpades, liczbaLew);
 
             int n = wePool.Length;
             int totalCombos = 1 << n;
@@ -148,13 +173,20 @@ namespace RozgrywkaKoncowa.Controllers
                     // Równomierne prawdopodobieństwo dla każdego rozkładu pików
                     double probability = uniformProb;
 
+                    // Uzupełnij ręce WE treflami do liczby lew
                     var wCards = wSpades.ToList();
                     for (int j = wCards.Count; j < liczbaLew; j++) wCards.Add(new CCard(club, CRank.FromValue((j % 13) + 2)));
                     var eCards = eSpades.ToList();
                     for (int j = eCards.Count; j < liczbaLew; j++) eCards.Add(new CCard(club, CRank.FromValue((j % 13) + 2)));
 
-                    var nHand = new CHand(north);
-                    var sHand = new CHand(south);
+                    // Uzupełnij ręce NS treflami do liczby lew (tylko dla symulacji)
+                    var nCards = northList.ToList();
+                    while (nCards.Count < liczbaLew) nCards.Add(new CCard(club, CRank.FromValue(nCards.Count + 2)));
+                    var sCards = southList.ToList();
+                    while (sCards.Count < liczbaLew) sCards.Add(new CCard(club, CRank.FromValue(sCards.Count + 2)));
+
+                    var nHand = new CHand(nCards);
+                    var sHand = new CHand(sCards);
                     var wHand = new CHand(wCards);
                     var eHand = new CHand(eCards);
 

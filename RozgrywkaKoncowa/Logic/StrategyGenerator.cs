@@ -15,8 +15,9 @@ namespace RozgrywkaKoncowa.Logic
 
     public static class StrategyGenerator
     {
-        // Rekurencyjny generator strategii: dla każdej lewy wybiera jedną kartę z N i jedną z S, permutuje kolejność w lewy
-        // Optymalizacja: karty w sekwensie (np. 4-3-2) są równoważne strategicznie
+        // Rekurencyjny generator strategii dla MAX(N,S) lew
+        // Wychodzić może tylko gracz, który ma jeszcze piki
+        // Optymalizacja: karty w sekwensie są równoważne strategicznie
         public static List<NSStrategy> GenerateAllStrategies(CHand north, CHand south, int tricks)
         {
             var result = new List<NSStrategy>();
@@ -61,30 +62,79 @@ namespace RozgrywkaKoncowa.Logic
                 return;
             }
 
-            // Grupuj karty według sekwensów
-            var nGroups = GroupBySequences(n);
-            var sGroups = GroupBySequences(s);
+            bool nHasCards = n.Count > 0;
+            bool sHasCards = s.Count > 0;
 
-            // Dla każdej grupy sekwensu używamy tylko najwyższej karty (reprezentanta)
-            foreach (var nGroup in nGroups)
+            // Grupuj karty według sekwensów
+            var nGroups = nHasCards ? GroupBySequences(n) : new List<List<CCard>>();
+            var sGroups = sHasCards ? GroupBySequences(s) : new List<List<CCard>>();
+
+            // Przypadek 1: Oboje mają karty - dwie możliwości (N wychodzi lub S wychodzi)
+            if (nHasCards && sHasCards)
+            {
+                // Opcja A: N wychodzi, S odpowiada
+                foreach (var nGroup in nGroups)
+                {
+                    foreach (var sGroup in sGroups)
+                    {
+                        var nCard = nGroup[0]; // Najwyższa karta w sekwensie N
+                        var sCard = sGroup[0]; // Najwyższa karta w sekwensie S
+
+                        var nextN = n.Where(c => c != nCard).ToList();
+                        var nextS = s.Where(c => c != sCard).ToList();
+
+                        var nextCurrent = new List<(int, CCard, int)>(current) { (0, nCard, lewaIdx), (2, sCard, lewaIdx) };
+                        GenerateRecursive(nextN, nextS, lewaIdx + 1, tricks, nextCurrent, result);
+                    }
+                }
+
+                // Opcja B: S wychodzi, N odpowiada
+                foreach (var sGroup in sGroups)
+                {
+                    foreach (var nGroup in nGroups)
+                    {
+                        var sCard = sGroup[0];
+                        var nCard = nGroup[0];
+
+                        var nextS = s.Where(c => c != sCard).ToList();
+                        var nextN = n.Where(c => c != nCard).ToList();
+
+                        var nextCurrent = new List<(int, CCard, int)>(current) { (2, sCard, lewaIdx), (0, nCard, lewaIdx) };
+                        GenerateRecursive(nextN, nextS, lewaIdx + 1, tricks, nextCurrent, result);
+                    }
+                }
+            }
+            // Przypadek 2: Tylko N ma karty - N wychodzi, S dorzuca trefla (obsłużone w symulacji)
+            else if (nHasCards && !sHasCards)
+            {
+                foreach (var nGroup in nGroups)
+                {
+                    var nCard = nGroup[0];
+                    var nextN = n.Where(c => c != nCard).ToList();
+
+                    // S nie ma kart, więc dodajemy tylko N (S dorzuci trefla w symulacji)
+                    var nextCurrent = new List<(int, CCard, int)>(current) { (0, nCard, lewaIdx) };
+                    GenerateRecursive(nextN, s, lewaIdx + 1, tricks, nextCurrent, result);
+                }
+            }
+            // Przypadek 3: Tylko S ma karty - S wychodzi, N dorzuca trefla
+            else if (!nHasCards && sHasCards)
             {
                 foreach (var sGroup in sGroups)
                 {
-                    var nCard = nGroup[0]; // Najwyższa karta w sekwensie N
-                    var sCard = sGroup[0]; // Najwyższa karta w sekwensie S
-
-                    // Usuń wybraną kartę z ręki
-                    var nextN = n.Where(c => c != nCard).ToList();
+                    var sCard = sGroup[0];
                     var nextS = s.Where(c => c != sCard).ToList();
 
-                    // Najpierw N, potem S
-                    var nextCurrent1 = new List<(int, CCard, int)>(current) { (0, nCard, lewaIdx), (2, sCard, lewaIdx) };
-                    GenerateRecursive(nextN, nextS, lewaIdx + 1, tricks, nextCurrent1, result);
-
-                    // Najpierw S, potem N
-                    var nextCurrent2 = new List<(int, CCard, int)>(current) { (2, sCard, lewaIdx), (0, nCard, lewaIdx) };
-                    GenerateRecursive(nextN, nextS, lewaIdx + 1, tricks, nextCurrent2, result);
+                    // N nie ma kart, więc dodajemy tylko S (N dorzuci trefla w symulacji)
+                    var nextCurrent = new List<(int, CCard, int)>(current) { (2, sCard, lewaIdx) };
+                    GenerateRecursive(n, nextS, lewaIdx + 1, tricks, nextCurrent, result);
                 }
+            }
+            // Przypadek 4: Nikt nie ma kart - nie powinno się zdarzyć jeśli tricks jest poprawne
+            else
+            {
+                // Zakończ generowanie (to nie powinno się wydarzyć)
+                return;
             }
         }
     }
